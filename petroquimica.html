@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Do Poço à Petroquímica – Visualização 3D</title>
+<style>
+:root{--bg:#f3f5f8;--fg:#14202e;--card:rgba(255,255,255,.92);--bd:#c9d2dd;--ac:#d2691e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1220;--fg:#e8eef6;--card:rgba(18,28,44,.92);--bd:#2c3b52;--ac:#ff9a4d}}
+:root[data-theme="dark"]{--bg:#0b1220;--fg:#e8eef6;--card:rgba(18,28,44,.92);--bd:#2c3b52;--ac:#ff9a4d}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#app{position:relative;height:100%}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+header{position:absolute;top:8px;left:12px;right:12px;font-weight:700;font-size:15px;pointer-events:none;text-shadow:0 1px 3px var(--bg)}
+header small{font-weight:400;opacity:.75;display:block}
+#panel{position:absolute;left:12px;bottom:64px;width:min(430px,calc(100% - 24px));max-height:52%;overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.45}
+#panel h2{margin:0 0 6px;font-size:16px;color:var(--ac)}
+#panel p{margin:0 0 8px}#pt{cursor:pointer}#pmin{float:right;position:sticky;top:0;margin-left:8px;width:30px;height:26px;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:6px;cursor:pointer;font-size:14px;line-height:1}#panel.min{max-height:none;overflow:hidden}#panel.min>:not(h2):not(#pmin):not(#info){display:none}
+#panel li{margin:3px 0}
+#tip{position:fixed;display:none;z-index:9;pointer-events:none;max-width:420px;background:var(--card);border:1px solid var(--ac);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.35)}.io-i{color:#2e9e4f}.io-o{color:#2e9e4f}.gi{color:#2e9e4f;font-weight:600}div.gi{font-weight:500}.tl{margin:2px 0 4px;padding-left:18px}.tl li{margin:1px 0}.g b{color:#2e9e4f}#ex{margin-top:6px}#ex hr{border:0;border-top:1px solid var(--bd)}#ex p{margin:0 0 8px}#chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}#chips button{font-size:12px;padding:4px 8px;border:1px solid var(--bd);background:transparent;color:var(--fg);border-radius:12px;cursor:pointer}#chips button:hover{background:var(--ac);color:#111}#info{margin-top:8px;padding:8px;border-left:3px solid var(--ac);background:rgba(128,128,128,.12);border-radius:4px;min-height:1.2em}
+nav{position:absolute;left:12px;right:12px;bottom:10px;display:flex;gap:6px;overflow-x:auto}
+nav button{flex:1 0 auto;padding:9px 10px;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--ac);color:#111;border-color:var(--ac);font-weight:700}
+</style>
+</head>
+<body>
+<div id="app">
+<header>Do Poço à Petroquímica<small>Arraste para girar · roda/pinça para zoom · clique nos equipamentos</small></header>
+<div id="panel" class="min"><button id="pmin" title="Expandir resumo">▴</button><h2 id="pt"></h2><p id="pd"></p><ul id="pl"></ul><div id="ex"></div><div id="chips"></div><div id="info">Clique num equipamento para ver a função.</div></div>
+<nav id="nav"></nav><div id="tip"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+addEventListener('error',e=>{const i=document.getElementById('info');if(i)i.textContent='Erro: '+e.message+' (linha '+e.lineno+')'});
+const XS=[0,18,36,56,76,96];
+const STEPS=[
+{t:'1 · O Petróleo e os Contaminantes',c:0x8d6e63,d:'Mistura natural de hidrocarbonetos formada pela matéria orgânica soterrada (janela do óleo: catagênese, 60–150 °C). Contém carbono (83–87%), hidrogênio (10–14%) e contaminantes.',
+ i:['Enxofre: corrosão, SOx, veneno de catalisadores','Nitrogenados: gomas e veneno de catalisadores','Ácidos naftênicos: corrosão ácida','Metais (Fe, Ni, V, Na): desativam catalisadores','Resinas e asfaltenos: aumentam a viscosidade']},
+{t:'2 · Processamento Primário (campo)',c:0x42a5f5,d:'Trata o fluido bruto antes do transporte, evitando corrosão e riscos em dutos e navios.',
+ i:['Separação trifásica: gás, óleo e água por gravidade','Desidratação: desemulsificantes rompem a emulsão','Especificação: BSW < 1% e sais < 300 mg/L']},
+{t:'3 · Processos de Separação (refinaria)',c:0xffca28,d:'Operações físicas, sem reação química, baseadas em pontos de ebulição ou solubilidade.',
+ i:['Dessalgadora: água + campo elétrico','Destilação atmosférica: gás, GLP, nafta, querosene, gasóleo, RAT','Destilação a vácuo: GOV e RV','UDASF: propano extrai asfaltenos → ODES e RASF']},
+{t:'4 · Processos de Conversão',c:0xef5350,d:'Alteram a estrutura química de frações pesadas para gerar produtos leves de alto valor.',
+ i:['UFCC: GOV, catalisador de zeólita, carbocátions, regenerador queima coque','Reforma catalítica: nafta → alta octanagem e BTX, produz H₂','Coqueamento retardado: resíduos, radicais livres, tambores de coque']},
+{t:'5 · Processos de Tratamento',c:0x66bb6a,d:'Removem compostos corrosivos, tóxicos ou venenos de catalisador para atingir as especificações.',
+ i:['Aminas (DEA/MEA/MDEA): remove H₂S e CO₂','Lavagem cáustica (NaOH): soda se esgota','MEROX/TCR: mercaptans → dissulfetos, soda regenerada']},
+{t:'6 · Indústria Petroquímica',c:0xab47bc,d:'Produz espécies químicas puras e definidas, em menor escala e com maior intensidade de capital que o refino.',
+ i:['1ª geração: eteno, propeno, butadieno, BTX, gás de síntese','2ª geração: PVC, polietileno, polipropileno','3ª geração: filmes, embalagens, tubos, autopeças','Rotas: pirólise a vapor (>700 °C), reforma, gases de FCC']}
+];
+const app=document.getElementById('app');
+const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));app.insertBefore(R.domElement,app.firstChild);
+const S=new THREE.Scene();S.background=new THREE.Color(0x0b1220);S.fog=new THREE.Fog(0x0b1220,60,200);
+const cam=new THREE.PerspectiveCamera(50,1,.1,500);
+S.add(new THREE.HemisphereLight(0xcfe3ff,0x223344,.9));
+const dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(30,50,30);S.add(dl);
+const gr=new THREE.Mesh(new THREE.PlaneGeometry(260,60),new THREE.MeshStandardMaterial({color:0x16202e}));gr.rotation.x=-Math.PI/2;gr.position.set(48,-.01,0);S.add(gr);
+const grid=new THREE.GridHelper(260,130,0x2a3a50,0x1d2a3b);grid.position.set(48,0,0);S.add(grid);
+const pick=[];
+const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.5,metalness:.35});
+function reg(m,n,d){m.userData={n,d};pick.push(m);S.add(m);return m}
+function cyl(x,y,z,r,h,c,n,d,rz){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),M(c));m.position.set(x,y+(rz?0:h/2),z);if(rz)m.rotation.z=Math.PI/2;if(r>=.6){const cg=new THREE.SphereGeometry(r,20,8,0,6.2832,0,1.5708);for(const s of[1,-1]){const cp=new THREE.Mesh(cg,m.material);cp.position.y=s*h/2;cp.scale.y=.6;if(s<0)cp.rotation.x=Math.PI;cp.userData={n,d};m.add(cp)}}return reg(m,n,d)}
+function box(x,y,z,w,h,l,c,n,d){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,l),M(c));m.position.set(x,y+h/2,z);return reg(m,n,d)}
+function sph(x,y,z,r,c,n,d){const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,16),M(c));m.position.set(x,y+r,z);return reg(m,n,d)}
+function tower(x,z,r,h,c,n,d,trays){cyl(x,0,z,r,h,c,n,d);for(let k=1;k<=trays;k++){const t=new THREE.Mesh(new THREE.TorusGeometry(r+.03,.04,6,24),M(0x9aa7b5));t.rotation.x=Math.PI/2;t.position.set(x,k*h/(trays+1),z);S.add(t)}}
+function label(t,x,y,z){const c=document.createElement('canvas');c.width=1024;c.height=192;const g=c.getContext('2d');g.fillStyle='rgba(10,16,28,.8)';g.fillRect(0,0,1024,192);g.fillStyle='#fff';g.font='bold 68px sans-serif';g.textAlign='center';g.fillText(t,512,120);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));s.scale.set(7,1.3,1);s.position.set(x,y,z);S.add(s)}
+// Station 1: reservoir + derrick
+(function(){const x=XS[0];
+box(x,-6,0,14,2,10,0x6d4c41,'Rocha-reservatório','Rocha porosa onde o petróleo migrou e ficou retido.');
+box(x,-4,0,14,1.5,10,0x1b1b1b,'Camada de óleo','Hidrocarbonetos líquidos com contaminantes (S, N, O, metais, asfaltenos).');
+box(x,-2.5,0,14,1,10,0x1e88e5,'Água de formação','Salmoura associada ao óleo no reservatório.');
+box(x,-1.5,0,14,1.5,10,0xb0bec5,'Capa de gás','Gás natural associado, acima do óleo.');
+cyl(x,-6,0,.25,10,0xcfd8dc,'Poço','Tubulação que traz o fluido bruto à superfície.');
+for(const s of[-1,1]){const m=new THREE.Mesh(new THREE.CylinderGeometry(.1,.45,8,4),M(0xff8f00));m.position.set(x+s*.6,4,0);m.rotation.z=-s*.08;reg(m,'Torre de perfuração','Sustenta a coluna de perfuração e produção.')}
+box(x,8,0,1.8,.4,1.8,0xff8f00,'Coroamento','Topo da torre.');
+label('1 · Poço',x,11,0)})();
+// Station 2: separator
+(function(){const x=XS[1];
+cyl(x,2.2,0,1.6,9,0x90a4ae,'Separador trifásico','Separa por gravidade: gás no topo, óleo no meio, água embaixo.',1);
+cyl(x-2.5,1.6,0,.3,2.6,0xeeeeee,'Saída de gás','Fase gasosa (gás natural/associado).');
+cyl(x,3.7,0,.3,2.5,0x212121,'Saída de óleo','Óleo cru para desidratação.');
+cyl(x+3,.5,2,.3,2,0x42a5f5,'Saída de água','Salmoura: água, sais e sedimentos.');
+cyl(x+5.5,0,-1,1.8,6,0x78909c,'Tanque de desidratação','Desemulsificantes e coalescência de gotas; óleo estabilizado BSW < 1%, sais < 300 mg/L.');
+label('2 · Processamento primário',x,15.5,0)})();
+// Station 3: desalter + furnace + towers
+(function(){const x=XS[2];
+cyl(x-6,1.6,0,1.3,6,0x78909c,'Dessalgadora','Lavagem com água e campo elétrico para remover sais antes das fornalhas.',1);
+box(x-3,0,2.5,2.2,2.2,2.2,0xbf360c,'Fornalha','Aquece o óleo antes da torre.');
+tower(x,0,1.4,13,0xb0bec5,'Torre de destilação atmosférica','Frações do topo ao fundo: gás combustível, GLP, nafta, querosene, gasóleo e RAT.',6);
+tower(x+5,0,1.2,11,0x90a4ae,'Torre de vácuo','Processa o RAT a pressão reduzida, evitando craqueamento térmico: gera GOV e RV.',4);
+tower(x+9.5,0,.9,7,0x607d8b,'UDASF','Extração líquido-líquido com propano: ODES e RASF.',2);
+label('3 · Separação',x+2,16,0)})();
+// Station 4: conversion
+(function(){const x=XS[3];
+cyl(x-5,0,0,.5,14,0xe53935,'Riser (UFCC)','Reator: quebra catalítica do GOV via carbocátions com zeólita.');
+cyl(x-2,0,0,1.6,7,0xc62828,'Regenerador','Queima o coque do catalisador, reativando-o e gerando energia.');
+cyl(x-2,0,-4,1.2,8,0x8e2424,'Vaso separador','Separa catalisador dos vapores.');
+tower(x+3,-3,1,12,0xb0bec5,'Fracionadora','Separa os produtos do craqueamento.',5);
+for(let k=0;k<3;k++)cyl(x-4+k*2.2,0,6,.8,4+k*.5,0x6d4c41,'Reator de reforma','Catalisador bifuncional Pt/Re: desidrociclização endotérmica, gera BTX e H₂.');
+for(const s of[0,1])cyl(x+4+s*3.2,0,5,1.3,9,0x212121,'Tambor de coque','Coque se forma aqui (retardado) em batelada; carga: resíduos, via radicais livres, ~500 °C.');
+label('4 · Conversão',x+1,15,0)})();
+// Station 5: treatment
+(function(){const x=XS[4];
+tower(x-4,0,1.1,10,0x66bb6a,'Absorvedora de amina','Amina fria absorve H₂S e CO₂ de gás natural, gás de refinaria e GLP.',4);
+tower(x,0,1.1,10,0x43a047,'Regeneradora de amina','Aquecimento libera o H₂S e regenera a amina.',4);
+cyl(x+4,0,0,1.4,5,0x29b6f6,'Lavagem cáustica','NaOH forma sais solúveis; a soda se esgota e deve ser trocada.');
+cyl(x+8,0,0,1.2,6,0xffb300,'MEROX / TCR','Ftalocianina de cobalto e ar oxidam mercaptans a dissulfetos e regeneram a soda.');
+label('5 · Tratamento',x+2,14.5,0)})();
+// Station 6: petrochem
+(function(){const x=XS[5];
+box(x-6,0,0,4,3.5,3,0xff6f00,'Fornalha de pirólise a vapor','Craqueia etano, propano ou nafta com vapor a mais de 700 °C: eteno e propeno.');
+tower(x-1,0,1,12,0xb0bec5,'Coluna de fracionamento','Separa e purifica olefinas e aromáticos (1ª geração).',5);
+for(let k=0;k<3;k++)sph(x+3+k*3.2,0,-3,1.4,0xce93d8,'Esfera de armazenamento','Armazena petroquímicos básicos (eteno, propeno, butadieno).');
+box(x+4,0,3.5,5,2.2,3,0x8e24aa,'2ª geração','Polimerização: PVC, polietileno, polipropileno.');
+box(x+10,0,3.5,5,3.2,3,0x6a1b9a,'3ª geração','Transformação em filmes, embalagens, tubos e autopeças.');
+label('6 · Petroquímica',x+3,14.5,0)})();
+// ---- detalhes ----
+const FL=[];
+function pp(a,b,r,c){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),L=A.distanceTo(B),m=new THREE.Mesh(new THREE.CylinderGeometry(r||.12,r||.12,L,8),M(c||0x8a97a6));m.position.copy(A).add(B).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());S.add(m)}
+function lad(x,z,r,h){const q=x+r+.15;pp([q,0,z-.2],[q,h,z-.2],.03,0xffc107);pp([q,0,z+.2],[q,h,z+.2],.03,0xffc107);for(let y=.6;y<h;y+=.7)pp([q,y,z-.2],[q,y,z+.2],.025,0xffc107)}
+function plat(x,y,z,r){const t=new THREE.Mesh(new THREE.TorusGeometry(r+.45,.07,6,28),M(0xffc107));t.rotation.x=Math.PI/2;t.position.set(x,y,z);S.add(t);const f=new THREE.Mesh(new THREE.CylinderGeometry(r+.45,r+.45,.06,28),M(0x546e7a));f.position.set(x,y,z);S.add(f)}
+const GT=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,200,100,1)');r.addColorStop(.4,'rgba(255,110,20,.45)');r.addColorStop(1,'rgba(255,60,0,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
+function fl(x,y,z,s){const G=new THREE.Group();G.position.set(x,y,z);S.add(G);
+const cs=[[.5,1.9,0xff3d00,.65],[.36,1.5,0xff8f00,.8],[.2,1.0,0xffe082,.95]].map(([r,h,c,o])=>{const m=new THREE.Mesh(new THREE.ConeGeometry(r*s,h*s,12,1,true),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));m.position.y=h*s/2;G.add(m);return m});
+const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:GT,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));gl.position.y=.8*s;G.add(gl);
+const em=[];for(let k=0;k<8;k++){const e=new THREE.Mesh(new THREE.SphereGeometry(.05*s,6,5),new THREE.MeshBasicMaterial({color:0xffb74d,transparent:true}));G.add(e);em.push([e,Math.random()])}
+const ph=Math.random()*10;
+FL.push({tick(t){cs.forEach((m,i)=>{const w=Math.sin(t*(9+i*4)+ph+i)*.5+Math.sin(t*17+i*3+ph)*.3;m.scale.set(1+.12*w,1+.3*w+.1*Math.sin(t*23+i),1+.12*w);m.rotation.y=t*(1+i)+ph});gl.material.opacity=.75+.25*Math.sin(t*15+ph);gl.scale.setScalar(s*(3.6+.5*Math.sin(t*11+ph)));em.forEach(([e,o])=>{const u=(t*.5+o)%1;e.position.set(Math.sin(o*40+t)*.3*s*u,(1+u*3.5)*s,Math.cos(o*40)*.3*s*u);e.material.opacity=1-u;e.scale.setScalar(1-u*.7)})}})}
+function flOld(x,y,z,s){const m=new THREE.Mesh(new THREE.ConeGeometry(.35*s,1.3*s,10),new THREE.MeshBasicMaterial({color:0xff7a1a}));m.position.set(x,y+.65*s,z);S.add(m);const c=new THREE.Mesh(new THREE.ConeGeometry(.18*s,.8*s,8),new THREE.MeshBasicMaterial({color:0xffe082}));c.position.set(x,y+.45*s,z);S.add(c);FL.push(m,c)}
+function valve(x,y,z){const v=new THREE.Mesh(new THREE.SphereGeometry(.22,10,8),M(0xd32f2f));v.position.set(x,y,z);S.add(v);const w=new THREE.Mesh(new THREE.TorusGeometry(.3,.04,6,14),M(0xd32f2f));w.position.set(x,y+.3,z);w.rotation.x=Math.PI/2;S.add(w)}
+function leg(x,z,w,h){for(const a of[-1,1])for(const b of[-1,1])pp([x+a*w,0,z+b*w],[x+a*w,h,z+b*w],.08,0x78909c)}
+XS.slice(1).forEach(x=>{const s=new THREE.Mesh(new THREE.BoxGeometry(26,.15,20),M(0x2a3648));s.position.set(x+2,.075,0);S.add(s)});
+for(let x=0;x<=XS[5]+12;x+=8){pp([x,0,5],[x,.6,5],.08,0x546e7a);pp([x,.2,4.6],[x,.2,5.4],.06,0x546e7a)}
+// 1 · poço
+(function(){const x=XS[0];
+const pj=new THREE.Group();pj.position.set(x-9,4.5,0);S.add(pj);
+const bm=new THREE.Mesh(new THREE.BoxGeometry(5,.35,.5),M(0xfbc02d));pj.add(bm);
+const hd=new THREE.Mesh(new THREE.BoxGeometry(.5,1.4,.5),M(0xf9a825));hd.position.set(-2.5,-.6,0);pj.add(hd);
+const cw=new THREE.Mesh(new THREE.BoxGeometry(.8,1.2,.5),M(0x455a64));cw.position.set(2.4,-.5,0);pj.add(cw);
+pp([x-9.9,0,0],[x-9,4.4,0],.1,0xf9a825);pp([x-8.1,0,0],[x-9,4.4,0],.1,0xf9a825);pp([x-11.5,3.2,0],[x-11.5,0,0],.05,0xeeeeee);
+box(x-10.5,0,0,3.4,.5,1.4,0x546e7a,'Base do cavalo-de-pau','Bomba mecânica que eleva o óleo em poços de baixa pressão.');
+window.__pj=pj;
+cyl(x,0,0,.4,1.3,0x37474f,'Árvore de natal','Conjunto de válvulas na boca do poço que controla a vazão.');
+valve(x+.6,.9,0);valve(x-.6,.9,0);
+for(const[a,b]of[[-.6,2],[.6,4],[.5,6]])pp([x-.6,a+1,.1],[x+.5,b,.1],.04,0xffa000);
+for(let k=0;k<3;k++)cyl(x+9+k*.9,0,3,.4,.9,0x212121,'Barril','Unidade de volume do petróleo (≈159 L).');
+pp([x+.3,1.3,0],[x+8,1.3,4.6],.1,0x212121);pp([x+8,1.3,4.6],[x+8,.6,5],.1,0x212121);
+})();
+// 2 · primário
+(function(){const x=XS[1];
+leg(x,0,1.1,2.2);
+for(const[a,b]of[[-1.3,1.4],[1.3,1.4]])valve(x+(a<0?-2.5:3),a<0?.5:1.8,a<0?0:2);
+cyl(x+10,0,6,.25,12,0xb0bec5,'Tocha (flare)','Queima com segurança o gás excedente, evitando riscos.');
+fl(x+10,12,6,1.6);
+pp([x-2.5,4.2,0],[x-2.5,13,0]);pp([x-2.5,13,0],[x+10,12,6]);
+pp([x,6.2,0],[x+5.5,6,-1]);pp([x+3,2.5,2],[x+3,.4,5]);
+lad(x,0,1.6,11.2);plat(x,8,0,1.6);
+for(let k=0;k<3;k++)plat(x+5.5,2+k*1.6,-1,1.8);
+cyl(x-6,0,3,.5,1.2,0x1565c0,'Bomba','Impulsiona o óleo desidratado para transporte.',1);
+box(x-6,0,3,2.4,.4,1.4,0x37474f,'Base da bomba','Skid de sustentação.');
+})();
+// 3 · separação
+(function(){const x=XS[2];
+leg(x-6,0,.6,1.6);
+cyl(x-3,2.2,2.5,.45,6,0x5d4037,'Chaminé','Libera os gases de combustão da fornalha.');fl(x-3,8.2,2.5,1.1);
+pp([x-4.7,.8,0],[x-4.1,.8,2.5]);pp([x-1.9,1.3,2.5],[x-1.4,1.3,0]);
+pp([x+1.4,.8,0],[x+3.8,.8,0],.12,0x3e2723);pp([x+6.2,.8,0],[x+8.6,.8,0],.12,0x3e2723);
+const dr=[[11,0xe0e0e0],[9.5,0xffee58],[7.5,0xffa726],[5.5,0x80deea],[3.5,0x8d6e63]];
+dr.forEach(([y,c])=>{pp([x+1.4,y,0],[x+4.6,y,2.6],.1,c);const q=new THREE.Mesh(new THREE.SphereGeometry(.45,12,10),M(c));q.position.set(x+4.6,y>5?.5:.5,2.6);S.add(q)});
+lad(x,0,1.4,13);lad(x+5,0,1.2,11);
+[4,8,11.5].forEach(y=>plat(x,y,0,1.4));[4,8].forEach(y=>plat(x+5,y,0,1.2));
+valve(x+3,.8,0);
+cyl(x+5,11,0,.15,1.5,0x9e9e9e,'Ejetores de vácuo','Mantêm a pressão reduzida na torre de vácuo.');
+})();
+// 4 · conversão
+(function(){const x=XS[3];
+pp([x-5,13,0],[x-2,6.5,-4],.2,0xc62828);pp([x-2,8,-4],[x+2,9,-3],.2,0xc62828);pp([x-4.5,1.8,0],[x-3.6,1.8,0],.25,0xe57373);
+lad(x+3,-3,1,12);lad(x-2,0,1.6,7);
+plat(x-2,5,0,1.6);plat(x+3,6,-3,1);plat(x+3,10,-3,1);
+for(const cx of[x+2.4,x+8.8])for(const cz of[3.5,6.5])pp([cx,0,cz],[cx,11,cz],.12,0x607d8b);
+for(const cz of[3.5,6.5])pp([x+2.4,11,cz],[x+8.8,11,cz],.12,0x607d8b);
+for(const cx of[x+2.4,x+8.8])pp([cx,11,3.5],[cx,11,6.5],.12,0x607d8b);
+box(x+5.6,11,5,2.4,1.6,2.4,0xffa000,'Casa de perfuração do coque','Equipamento que corta o coque sólido dos tambores com jato de água.');
+pp([x-4,4,6],[x-1.8,4.5,6],.14,0xffb74d);pp([x-1.8,4.5,6],[x+.4,5,6],.14,0xffb74d);
+cyl(x-6,0,8,.45,8,0x5d4037,'Chaminé da fornalha','Descarga dos gases da fornalha de aquecimento da carga.');fl(x-6,8,8,1.1);
+box(x-7.6,0,8,1.8,1.8,1.8,0xbf360c,'Fornalha de reaquecimento','Reaquece a nafta entre os reatores de reforma, pois as reações são endotérmicas.');
+})();
+// 5 · tratamento
+(function(){const x=XS[4];
+pp([x-4,1,1.2],[x,1,1.2],.14,0x2e7d32);pp([x-4,9,1.2],[x,9,1.2],.14,0x81c784);
+cyl(x,11.2,0,.5,2.4,0x9e9e9e,'Condensador de topo','Condensa a água e devolve o refluxo à regeneradora.',1);
+pp([x+1.1,.8,0],[x+2.6,.8,0],.12,0x0277bd);pp([x+5.4,.8,0],[x+6.8,.8,0],.12,0xf9a825);
+pp([x+8,.4,-2.5],[x+8,3,-1.2],.1,0x4fc3f7);
+sph(x+4,0,-4,1.6,0xeceff1,'Esfera de GLP','GLP tratado armazenado sob pressão.');leg(x+4,-4,.9,.6);
+lad(x-4,0,1.1,10);lad(x,0,1.1,10);plat(x-4,5,0,1.1);plat(x,5,0,1.1);
+leg(x+4,0,.7,.6);leg(x+8,0,.6,.6);valve(x+2,.8,0);valve(x+6,.8,0);
+})();
+// 6 · petroquímica
+(function(){const x=XS[5];
+cyl(x-7.5,3.5,0,.5,7,0x5d4037,'Chaminé da fornalha','Descarga dos gases de combustão da pirólise.');fl(x-7.5,10.5,0,1.2);
+pp([x-4,2,0],[x-2,2,0],.15,0xff8f00);pp([x+1,9,0],[x+4.6,2.8,-3],.12,0xce93d8);
+lad(x-1,0,1,12);plat(x-1,6,0,1);plat(x-1,10,0,1);
+for(let k=0;k<2;k++){const s=cyl(x+13+k*2.4,1.5,-2,1,3.5,0xeeeeee,'Silo de pellets','Armazena resina plástica (pellets) antes da transformação.');const c=new THREE.Mesh(new THREE.ConeGeometry(1,1.5,16),M(0xb0bec5));c.rotation.x=Math.PI;c.position.set(x+13+k*2.4,.75,-2);S.add(c)}
+box(x+10,.5,8,5,2.2,2,0xffffff,'Carreta','Escoa os produtos plásticos aos clientes.');
+box(x+13.2,.5,8,1.4,1.6,2,0x1565c0,'Cavalo mecânico','Cabine do caminhão.');
+for(const wx of[8.5,10,11.5,13.2]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,.4,14),M(0x111111));w.rotation.x=Math.PI/2;w.position.set(x+wx,.5,7);S.add(w);const w2=w.clone();w2.position.z=9;S.add(w2)}
+pp([x+6.5,1.5,3.5],[x+7.5,1.5,3.5],.15,0xce93d8);
+})();
+let SHOW=true;const ST={},SB={},LB=[],seen={},BND=[11.9,29,47.5,70,87],SKIP=['Base da bomba','Coroamento','Base do cavalo-de-pau'];
+pick.forEach(m=>{const n=m.userData.n;if(SKIP.includes(n))return;const k=BND.filter(b=>m.position.x>b).length,key=n+k;(SB[k]=SB[k]||new THREE.Box3()).union(new THREE.Box3().setFromObject(m));if(seen[key])return;seen[key]=1;
+const bb=new THREE.Box3().setFromObject(m),ct=new THREE.Vector3();bb.getCenter(ct);
+const cv=document.createElement('canvas');cv.width=1024;cv.height=160;const g=cv.getContext('2d');g.font='bold 34px sans-serif';g.textAlign='center';
+g.font='bold 64px sans-serif';const tw=Math.min(1000,g.measureText(n).width+72),x0=(1024-tw)/2;g.fillStyle='rgba(10,16,28,.88)';g.fillRect(x0,16,tw,116);g.fillStyle='#'+STEPS[k].c.toString(16).padStart(6,'0');g.fillRect(x0,124,tw,8);g.fillStyle='#fff';g.fillText(n,512,100,tw-32);
+const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex(cv),depthTest:false,transparent:true}));sp.scale.set(tw/1024*7,1.1,1);sp.position.set(ct.x,bb.max.y+1,ct.z);sp.renderOrder=20;sp.userData.s=k;S.add(sp);LB.push(sp);(ST[k]=ST[k]||[]).push({n,m,bb,ct})});
+const STG=[0,1,2,3,4,5].map(()=>{const g=new THREE.Group();S.add(g);return g});let FLOWON=false;
+function tex(cv){const t=new THREE.CanvasTexture(cv);t.generateMipmaps=false;t.minFilter=THREE.LinearFilter;t.onUpdate=()=>{cv.width=cv.height=1};return t}
+function showLabels(){LB.forEach(l=>l.visible=SHOW&&l.userData.s==cur);STG.forEach((g2,k)=>g2.visible=FLOWON&&k==cur);const ch=document.getElementById('chips');ch.innerHTML='';(ST[cur]||[]).forEach(it=>{const b=document.createElement('button');b.textContent=it.n;b.onclick=()=>focusItem(it);ch.appendChild(b)})}
+function focusItem(it){const sz=it.bb.getSize(new THREE.Vector3());g.tx=it.ct.x;g.ty=it.ct.y;g.r=Math.min(40,Math.max(12,Math.max(sz.x,sz.y,sz.z)*2.2+8));document.getElementById('info').innerHTML=tipHTML(it.m.userData)}
+function fit(i){const b=SB[i];if(!b)return;const sz=b.getSize(new THREE.Vector3()),ct=b.getCenter(new THREE.Vector3());g.tx=ct.x;g.ty=Math.max(3,ct.y*.8);g.r=Math.min(80,Math.max(22,1.5*Math.max(sz.x/(.93*Math.max(.5,cam.aspect)),sz.y/.93)+14))}
+const c2=new THREE.Clock();(function a(){requestAnimationFrame(a);const t=c2.getElapsedTime();window.__pj.rotation.z=.22*Math.sin(t*1.6);FL.forEach(f=>f.tick&&f.tick(t))})();
+// pipeline + flow
+const END=XS[5]+12;
+const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,END+4,10),M(0x7f8c9b));pipe.rotation.z=Math.PI/2;pipe.position.set(END/2-2,.6,5);S.add(pipe);
+const pm=[],P=[];for(let k=0;k<36;k++){const m=new THREE.Mesh(new THREE.SphereGeometry(.28,10,8),new THREE.MeshBasicMaterial({color:0xffffff}));S.add(m);pm.push(m);P.push(k/36*END)}
+// UI + camera
+const nav=document.getElementById('nav');let cur=0;
+const g={tx:0,ty:3,r:24,th:.5,ph:1.15},v={tx:0,ty:3,r:24,th:.5,ph:1.15};
+function go(i){cur=i;showLabels();const s=STEPS[i];fit(i);document.getElementById('ex').innerHTML=s.x||'';document.getElementById('panel').scrollTop=0;document.getElementById('pt').textContent=s.t;document.getElementById('pd').textContent=s.d;
+document.getElementById('pl').innerHTML=s.i.map(t=>'<li>'+t+'</li>').join('');document.getElementById('info').textContent='Clique num equipamento para ver a função.';
+[...nav.children].forEach((b,k)=>{if(k<STEPS.length)b.classList.toggle('on',k==i)})}
+STEPS.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.t.split(' · ')[0]+' '+s.t.split(' · ')[1].split(' (')[0];b.onclick=()=>go(i);nav.appendChild(b)});
+const tb=document.createElement('button');tb.textContent='Rótulos';tb.className='on';tb.onclick=()=>{SHOW=!SHOW;tb.classList.toggle('on',SHOW);showLabels()};nav.appendChild(tb);
+function size(){const w=app.clientWidth,h=app.clientHeight;R.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix()}
+addEventListener('resize',size);size();go(0);
+let drag=null,moved=0;const el=R.domElement,pts=new Map();let pd0=0;
+el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);pts.set(e.pointerId,e);drag={x:e.clientX,y:e.clientY};moved=0;if(pts.size==2){const a=[...pts.values()];pd0=Math.hypot(a[0].clientX-a[1].clientX,a[0].clientY-a[1].clientY)}});
+el.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,e);if(pts.size==2){const a=[...pts.values()],d=Math.hypot(a[0].clientX-a[1].clientX,a[0].clientY-a[1].clientY);g.r=Math.min(60,Math.max(8,g.r*pd0/d));pd0=d;return}
+const dx=e.clientX-drag.x,dy=e.clientY-drag.y;moved+=Math.abs(dx)+Math.abs(dy);drag={x:e.clientX,y:e.clientY};g.th-=dx*.006;g.ph=Math.min(1.5,Math.max(.25,g.ph-dy*.006))});
+el.addEventListener('pointerup',e=>{pts.delete(e.pointerId);if(moved<6&&pts.size==0)click(e)});
+el.addEventListener('pointercancel',e=>pts.delete(e.pointerId));
+el.addEventListener('wheel',e=>{e.preventDefault();g.r=Math.min(60,Math.max(8,g.r*(1+e.deltaY*.001)))},{passive:false});
+const rc=new THREE.Raycaster(),mv=new THREE.Vector2();
+function click(e){const b=el.getBoundingClientRect();mv.set((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1);rc.setFromCamera(mv,cam);const h=rc.intersectObjects(pick,true)[0];
+document.getElementById('info').innerHTML=h?tipHTML(h.object.userData):'Clique num equipamento para ver a função.'}
+const IO={
+'Rocha-reservatório':['Óleo, gás e água migrados da rocha geradora','Fluido bruto produzido pelo poço'],
+'Camada de óleo':['—','Óleo cru com contaminantes (S, N, O, metais, asfaltenos)'],
+'Água de formação':['—','Água salgada produzida junto com o óleo'],
+'Capa de gás':['—','Gás natural associado'],
+'Poço':['Fluido do reservatório','Fluido bruto (óleo + gás + água) na superfície'],
+'Torre de perfuração':['—','Acesso ao reservatório (coluna de perfuração/produção)'],
+'Árvore de natal':['Fluido bruto do poço','Fluido controlado para a linha de produção'],
+'Barril':['—','Unidade de medida: ≈159 L de óleo'],
+'Separador trifásico':['Fluido bruto (óleo + gás + água)','Gás (topo) · óleo (meio) · água (fundo)'],
+'Saída de gás':['Fase gasosa do separador','Gás natural/associado → flare ou compressão'],
+'Saída de óleo':['Fase oleosa do separador','Óleo com emulsão → desidratação'],
+'Saída de água':['Fase aquosa do separador','Salmoura (água, sais, sedimentos) → tratamento'],
+'Tanque de desidratação':['Óleo emulsionado + desemulsificante','Óleo estabilizado (BS&W<1%, sais<300 mg/L) · água separada'],
+'Tocha (flare)':['Gás excedente','Gases queimados (CO₂ + H₂O)'],
+'Bomba':['Óleo estabilizado','Óleo pressurizado para duto/navio'],
+'Dessalgadora':['Óleo cru + água de lavagem + desemulsificante','Óleo dessalgado · salmoura'],
+'Fornalha':['Óleo dessalgado (frio)','Óleo aquecido para o ponto flash da torre'],
+'Chaminé':['Gases de combustão da fornalha','Gases liberados à atmosfera'],
+'Torre de destilação atmosférica':['Óleo aquecido (ponto flash)','Gás C₁–C₂ · GLP · nafta · querosene · gasóleo · RAT (fundo)'],
+'Torre de vácuo':['RAT (resíduo atmosférico)','GOV (lateral) · RV (fundo)'],
+'UDASF':['RV + propano (solvente)','ODES (óleo desasfaltado) · resíduo asfáltico (RASF)'],
+'Ejetores de vácuo':['Vapores não condensáveis da torre','Vácuo mantido (3 estágios)'],
+'Riser (UFCC)':['GOV + catalisador regenerado quente + vapor','Hidrocarbonetos craqueados + catalisador coqueificado'],
+'Regenerador':['Catalisador com coque + ar','Catalisador reativado · gás de combustão (CO) → caldeira'],
+'Vaso separador':['Efluente do riser','Vapores craqueados → fracionadora · catalisador → regenerador'],
+'Fracionadora':['Efluente craqueado','Gás combustível · GLP · nafta craqueada · LCO · OD'],
+'Reator de reforma':['Nafta hidrotratada + H₂ reaquecida','Reformado (alta octanagem, BTX) + H₂'],
+'Tambor de coque':['RV/RAT aquecido (~500 °C)','Vapores (gás, GLP, nafta, gasóleos) · coque verde (CVP)'],
+'Casa de perfuração do coque':['Coque sólido do tambor','Coque cortado por jato de água'],
+'Chaminé da fornalha':['Gases de combustão da fornalha','Gases liberados à atmosfera'],
+'Fornalha de reaquecimento':['Efluente frio do reator','Nafta reaquecida para o próximo reator'],
+'Absorvedora de amina':['Gás/GLP com H₂S e CO₂ + amina pobre','Gás/GLP tratado (topo) · amina rica (fundo)'],
+'Regeneradora de amina':['Amina rica','H₂S + CO₂ (topo) · amina pobre regenerada'],
+'Condensador de topo':['Vapores de topo (água + gases ácidos)','Refluxo de água · gases ácidos'],
+'Lavagem cáustica':['GLP/gasolina + solução de NaOH','Hidrocarboneto tratado · soda exausta (descarte)'],
+'MEROX / TCR':['Nafta/querosene/GLP com mercaptans + soda + ar','Produto adoçado (dissulfetos RSSR) · soda regenerada'],
+'Esfera de GLP':['GLP tratado','GLP armazenado sob pressão'],
+'Fornalha de pirólise a vapor':['Nafta ou etano/propano + vapor de água','Gás craqueado (eteno, propeno, H₂, nafta de pirólise)'],
+'Coluna de fracionamento':['Gás craqueado resfriado','Eteno · propeno · butadieno · BTX separados'],
+'Esfera de armazenamento':['Petroquímicos básicos','Eteno, propeno e butadieno estocados'],
+'2ª geração':['Eteno, propeno, benzeno, xilenos','Resinas e intermediários (PVC, PE, PP, estireno, MEG, PTA)'],
+'3ª geração':['Resinas e polímeros','Filmes, embalagens, tubos, fibras, autopeças'],
+'Silo de pellets':['Resina plástica','Pellets estocados para transformação'],
+'Carreta':['Produtos plásticos','Entrega ao cliente'],
+'Cavalo mecânico':['—','Transporte rodoviário']};
+const DET={
+'Rocha-reservatório':['Rocha-Reservatório (Origem do Petróleo)','Matéria orgânica (fitoplâncton, algas) depositada com sedimentos de baixa permeabilidade.','Sob soterramento e aquecimento (catagênese, 60–150 °C, a janela do óleo), a matéria orgânica se transforma em <b>petróleo, gás e água</b>, que ficam retidos nos poros da rocha.'],
+'Camada de óleo':['Camada de Óleo (Petróleo Cru)','Hidrocarbonetos gerados e migrados na rocha.','Mistura de hidrocarbonetos com contaminantes: <b>enxofre, nitrogenados, oxigenados (ácidos naftênicos), metais, resinas e asfaltenos</b>, que causam corrosão, gomas e envenenamento de catalisadores.'],
+'Água de formação':['Água de Formação (Salmoura)','Água salgada presente no reservatório.','Sai junto com o óleo e forma emulsão; precisa ser removida no processamento primário (<b>BS&W &lt; 1%</b>).'],
+'Capa de gás':['Capa de Gás (Gás Associado)','Gás natural livre ou dissolvido no reservatório.','Sobe ao topo do reservatório e é produzido junto com o óleo como <b>gás associado</b>.'],
+'Poço':['Poço de Produção','Petróleo bruto do reservatório (óleo + gás + água).','Leva o fluido à superfície, que segue como <b>fluido bruto</b> para o processamento primário.'],
+'Árvore de natal':['Árvore de Natal (Controle do Poço)','Fluido bruto do poço.','Conjunto de válvulas que controla a vazão e envia o <b>fluido bruto</b> à linha de produção.'],
+'Separador trifásico':['Separador Trifásico (1ª Etapa do Processamento Primário)','Fluido bruto: óleo + gás + água livre.','Separação por gravidade (decantação), com antiespumantes se necessário: <b>gás</b> no topo, <b>óleo</b> no meio e <b>salmoura</b> (água, sais e sedimentos) no fundo.'],
+'Saída de gás':['Saída de Gás','Fase gasosa do separador.','O <b>gás natural/associado</b> segue para compressão ou, se excedente, para a tocha.'],
+'Saída de óleo':['Saída de Óleo','Fase oleosa com emulsão.','O <b>óleo com água emulsionada</b> segue para a desidratação.'],
+'Saída de água':['Saída de Água','Fase aquosa do separador.','A <b>salmoura</b> (água, sais e sedimentos) segue para tratamento.'],
+'Tanque de desidratação':['Desidratação e Dessalgação (2ª Etapa do Processamento Primário)','Óleo com emulsão água-óleo + desemulsificante.','Os desemulsificantes (cabeça polar, cauda apolar) rompem a emulsão e, com tempo de residência e turbulência, as gotas coalescem e decantam. Sai <b>óleo estabilizado (BS&W &lt; 1%, sais &lt; 300 mg/L)</b>.'],
+'Tocha (flare)':['Tocha (Flare)','Gás excedente que não pode ser aproveitado.','Queima o gás com segurança, evitando acúmulo e risco de explosão; saem <b>CO₂ e vapor de água</b>.'],
+'Bomba':['Bomba de Transferência','Óleo estabilizado.','Pressuriza o <b>óleo tratado</b> para transporte por duto ou navio.'],
+'Dessalgadora':['Dessalgadora (Pré-Tratamento Físico)','Petróleo bruto / óleo cru vindo do processamento primário.','O óleo frio recebe injeção de água de lavagem e desemulsificante e passa por um campo elétrico alternado, que polariza as gotas e promove a coalescência. Remove sal e água residual antes do aquecimento na fornalha; sai <b>óleo dessalgado</b>.'],
+'Fornalha':['Fornalha de Aquecimento','Petróleo dessalgado (frio).','Aquece o óleo antes da torre (o sal removido protege os refratários); sai <b>petróleo dessalgado e aquecido</b>.'],
+'Torre de destilação atmosférica':['Destilação Atmosférica (1 atm)','Petróleo dessalgado e aquecido.','Entra pelo ponto <i>flash</i> (lateral inferior da torre) e é fracionado por volatilidade nos pratos, com refluxo no topo e refervedor no fundo. Saem <b>gás combustível (C₁–C₂), GLP (C₃–C₄), nafta, querosene, gasóleo atmosférico</b> e, no fundo, o <b>RAT</b>.'],
+'Torre de vácuo':['Destilação a Vácuo (Pressão Reduzida)','<b>Resíduo Atmosférico (RAT)</b>, fração pesada do fundo da torre atmosférica.','Sob pressão reduzida (ejetores em 3 estágios), o RAT vaporiza sem degradação térmica, sem refluxo de topo nem de fundo. Gera <b>Gasóleo de Vácuo (GOV)</b> e <b>Resíduo de Vácuo (RV)</b>.'],
+'UDASF':['Desasfaltação a Propano (Extração com Solvente)','<b>Resíduo de Vácuo (RV)</b>.','Extração líquido-líquido com propano (solvente leve) em contracorrente retira as frações oleosas nobres e separa o <b>Óleo Desasfaltado (ODES)</b> do <b>Resíduo Asfáltico (RASF)</b>.'],
+'Ejetores de vácuo':['Sistema de Ejetores de Vácuo','Vapores não condensáveis da torre de vácuo.','Em 3 estágios (pré, inter e pós-condensadores), mantêm a pressão reduzida na torre.'],
+'Riser (UFCC)':['Riser – Reator do Craqueamento Catalítico (UFCC)','<b>Gasóleo de Vácuo (GOV)</b> + catalisador de zeólita regenerado e quente.','O catalisador fluidizado quebra as ligações C–C via carbocátions (reações primárias endotérmicas), gerando <b>olefinas leves, GLP e nafta craqueada</b>. O coque depositado desativa o catalisador.'],
+'Regenerador':['Regenerador do Catalisador','Catalisador coqueificado + ar.','Queima parcialmente o coque (formando CO), reativa o catalisador e fornece o calor das reações endotérmicas do riser. Os gases seguem para a <b>caldeira de CO</b>.'],
+'Vaso separador':['Vaso Separador (UFCC)','Efluente do riser: vapores + catalisador.','Separa o catalisador, enviado ao regenerador, dos <b>vapores craqueados</b>, enviados à fracionadora.'],
+'Fracionadora':['Fracionadora Principal (UFCC)','Corrente craqueada vinda do reator.','Fraciona em <b>gás combustível, GLP, nafta craqueada, Óleo Leve de Reciclo (LCO) e Óleo Decantado (OD)</b>.'],
+'Reator de reforma':['Reforma Catalítica','<b>Nafta pesada hidrotratada</b> (o HDT remove S, N, O e metais).','O catalisador bifuncional Pt-Re rearranja as moléculas sem alterar o nº de carbonos (desidrociclização e desidrogenação, endotérmicas). Gera <b>reformado de alta octanagem, BTX e H₂</b>.'],
+'Fornalha de reaquecimento':['Fornalha de Reaquecimento (Reforma)','Efluente frio do reator anterior.','Como as reações são endotérmicas, reaquece a carga entre os reatores em série; sai <b>nafta reaquecida</b>.'],
+'Tambor de coque':['Coqueamento Retardado (Tambor de Coque)','<b>Resíduos pesados (RAT, RV, OD)</b> aquecidos a ~500 °C na fornalha.','O craqueamento térmico (radicais livres) e a formação de coque são <i>retardados</i> para o tambor, evitando entupir as serpentinas. Operam em batelada alternada (~24 h). Saem <b>gás, GLP, nafta, gasóleos</b> e <b>Coque Verde de Petróleo (CVP)</b>.'],
+'Casa de perfuração do coque':['Descoqueamento','Coque sólido do tambor cheio.','O coque é cortado por jato de água, enquanto o outro tambor enche e o ciclo continua.'],
+'Absorvedora de amina':['Tratamento com Aminas – Absorção (DEA/MEA/MDEA)','Gás natural, gás de refinaria ou GLP com <b>H₂S e CO₂</b> + amina pobre.','Absorção química reversível: a amina reage com os gases ácidos. Sai o <b>gás/GLP tratado</b> no topo e a <b>amina rica</b> no fundo.'],
+'Regeneradora de amina':['Tratamento com Aminas – Regeneração','<b>Amina rica</b> (carregada com H₂S e CO₂).','O aquecimento decompõe os sais, libera <b>H₂S e CO₂</b> no topo e devolve a <b>amina pobre</b> ao ciclo.'],
+'Lavagem cáustica':['Lavagem Cáustica (Processo Não Regenerativo)','GLP ou gasolina com H₂S, mercaptans (RSH) e COS + solução de NaOH.','O NaOH neutraliza os ácidos fracos, formando sais solúveis em água; depois ocorrem decantação e lavagem com água. Sai o <b>hidrocarboneto tratado</b> e a <b>soda exausta</b>, que não é recuperada e exige descarte.'],
+'MEROX / TCR':['Tratamento Cáustico Regenerativo (MEROX)','Nafta, querosene ou GLP com <b>mercaptans</b> + soda + ar.','O catalisador de ftalocianina de cobalto sulfonado e o O₂ oxidam os mercaptans a <b>dissulfetos (RSSR)</b> e regeneram a soda. Sai o <b>produto adoçado</b>.'],
+'Esfera de GLP':['Esfera de GLP','GLP tratado.','Armazena o <b>GLP</b> sob pressão.'],
+'Fornalha de pirólise a vapor':['Pirólise a Vapor (Steam Cracking)','<b>Nafta, etano, propano ou GLP</b> + vapor de água.','Craqueamento térmico endotérmico, sem catalisador, a mais de 700 °C e baixa pressão (&lt; 200 kPa). Gera <b>eteno, propeno, butadieno, H₂ e nafta de pirólise</b>; o etano rende cerca de 75–80% de eteno e a nafta cerca de 28–30%.'],
+'Coluna de fracionamento':['Fracionamento dos Petroquímicos Básicos','Gás craqueado resfriado.','Separa e purifica as <b>olefinas leves</b> (eteno, propeno, butadieno) e os aromáticos (BTX) da 1ª geração.'],
+'Esfera de armazenamento':['Armazenamento dos Básicos','Eteno, propeno e butadieno.','Estoca os <b>petroquímicos básicos</b> que alimentam a 2ª geração.'],
+'2ª geração':['2ª Geração (Intermediários e Resinas)','Eteno, propeno, benzeno, xilenos, metanol e amônia.','A síntese química gera <b>cloreto de vinila, MEG, acrilonitrila, estireno, fenol, LAB, ácido tereftálico, formol, ureia</b> e resinas (PE, PP, PVC).'],
+'3ª geração':['3ª Geração (Transformação)','Resinas e polímeros (PE, PP, PVC, PS, PET).','Transformação física e química em <b>filmes, embalagens, tubos, fibras, borrachas, espumas e autopeças</b>.'],
+'Silo de pellets':['Silo de Resina','Pellets de plástico da 2ª geração.','Armazena a resina até a transformação em produtos finais.']};
+const DET2={
+'Dessalgadora':['Dessalgadora (Tratamento Pré-Destilação)','Petróleo Cru / Bruto vindo do processamento primário.',['O petróleo cru frio é aquecido previamente em trocadores de calor para reduzir a sua viscosidade.','Recebe a injeção de água doce de lavagem e aditivo desemulsificante sob tempo de residência e turbulência ajustados para desestabilizar a emulsão água-óleo.','Entra no vaso dessalgador sob a ação de um campo elétrico alternado e rápido, que polariza as gotículas de água salgada, forçando choques sucessivos e promovendo a coalescência (agrupamento em gotas maiores que decantam no fundo).'],['<b>Topo:</b> Petróleo Dessalgado, pronto e aquecido para seguir às fornalhas da destilação.','<b>Fundo:</b> Água salgada residual (efluente de lavagem descartado).']],
+'Torre de destilação atmosférica':['Destilação Atmosférica (Pressão de 1 atm)','Petróleo Dessalgado e Aquecido a altas temperaturas nas fornalhas da refinaria.',['O petróleo aquecido entra pelo ponto <i>flash</i> na região inferior da torre de destilação.','A separação ocorre por variação de energia (temperatura) a 1 atm, com vaporizações e condensações sucessivas ao longo de pratos teóricos, em função da volatilidade/ponto de ebulição das moléculas.','A torre utiliza refluxo no topo (retorno de líquido frio) e refervedor no fundo para manter o equilíbrio líquido-vapor.'],['<b>Topo:</b> Gás Combustível (C₁–C₂).','<b>Saídas laterais superiores:</b> GLP (C₃–C₄) e Nafta Leve (C₅–C₈).','<b>Saídas laterais intermediárias:</b> Nafta Pesada (C₁₀–C₁₂), carga para a Reforma Catalítica, e Querosene (C₁₁–C₁₂), QAV/iluminação.','<b>Saída lateral inferior:</b> Gasóleo Atmosférico (C₁₃–C₂₅), origina o Óleo Diesel.','<b>Fundo da torre:</b> Resíduo Atmosférico (RAT), moléculas pesadas não vaporizadas.']],
+'Torre de vácuo':['Destilação a Vácuo (Pressão Reduzida)','Resíduo Atmosférico (RAT) vindo do fundo da torre atmosférica.',['Como o RAT contém moléculas muito pesadas que sofreriam craqueamento térmico indesejado se fossem reaquecidas a altas temperaturas sob pressão normal, a torre opera sob pressão reduzida (vácuo).','A pressão reduzida é mantida por um sistema de ejetores de vácuo em 3 estágios (com pré, inter e pós-condensadores).','Diferente da torre atmosférica, não há refluxo de topo nem de fundo, evitando submeter o material pesado a aquecimento repetido.'],['<b>Topo / lateral:</b> Gasóleo de Vácuo (GOV), fração nobre destilada usada como carga para o Craqueamento Catalítico (FCC).','<b>Fundo:</b> Resíduo de Vácuo (RV), fração ultrapesada para asfalto, óleo combustível pesado, coqueamento ou desasfaltação.']],
+'UDASF':['Desasfaltação a Propano (Extração com Solvente)','Resíduo de Vácuo (RV).',['Processo de extração líquido-líquido (agente de massa por solubilidade, sem reação química).','O RV entra em uma torre de extração em contracorrente e recebe uma mistura de solventes leves (como propano e butano).','O solvente dissolve e recupera seletivamente as frações oleosas leves e nobres contidas no resíduo, separando-as do material pesado rico em asfaltenos e resinas.'],['<b>Fase extrato:</b> Óleo Desasfaltado (ODES), fração oleosa recuperada usada como carga para craqueamento.','<b>Fase rafinado:</b> Resíduo Asfáltico (RASF), fração concentrada em asfaltenos.']]};
+const LI=a=>'<ul class=tl>'+a.map(s=>'<li>'+s+'</li>').join('')+'</ul>';
+function tipFmtOld(t,en,co,sa){return '<b>'+t+'</b><br><b>O que entra (Carga):</b> <span class=gi>'+en+'</span><br><b>Como funciona (Condições de Processo):</b>'+LI(co)+'<b>O que sai (Produtos):</b><div class=gi>'+LI(sa)+'</div>'}
+const OBJ={
+'Separador trifásico':['Separar gás, óleo e água livre do fluido bruto do poço.','Sem essa separação não é possível tratar, transportar nem medir cada fase com segurança.'],
+'Tanque de desidratação':['Remover a água emulsionada e os sais do óleo até BS&W < 1% e sais < 300 mg/L.','Água e sais causam corrosão, incrustação e riscos em dutos e navios.'],
+'Fornalha':['Aquecer o petróleo dessalgado antes da torre de destilação.','A separação por pontos de ebulição só ocorre com a carga já aquecida.'],
+'Riser (UFCC)':['Quebrar cataliticamente o GOV em frações leves de alto valor (GLP e gasolina).','O GOV é pesado e de baixo valor; a conversão adapta a produção à demanda do mercado.'],
+'Regenerador':['Queimar o coque do catalisador e reativá-lo.','O coque desativa os sítios ativos, e a queima ainda fornece o calor das reações endotérmicas.'],
+'Vaso separador':['Separar o catalisador dos vapores craqueados.','O catalisador precisa voltar ao regenerador e os vapores seguir para o fracionamento.'],
+'Fracionadora':['Separar os produtos craqueados em cortes comerciais.','O efluente do reator é uma mistura que precisa ser fracionada em gás, GLP, nafta, LCO e OD.'],
+'Reator de reforma':['Rearranjar a nafta pesada para elevar a octanagem e gerar BTX e H₂.','A nafta de destilação tem baixa octanagem, e os aromáticos são matéria-prima petroquímica nobre.'],
+'Fornalha de reaquecimento':['Repor o calor perdido entre os reatores da reforma.','As reações principais são fortemente endotérmicas, e a temperatura cai ao longo dos reatores.'],
+'Tambor de coque':['Converter termicamente resíduos pesados em produtos leves e coque verde.','RV, RAT e OD têm baixo valor; o coqueamento extrai valor deles sem catalisador.'],
+'Absorvedora de amina':['Remover H₂S e CO₂ de gás natural, gás de refinaria e GLP.','Esses gases ácidos causam corrosão, toxicidade e envenenam catalisadores.'],
+'Regeneradora de amina':['Recuperar a amina e liberar o H₂S e o CO₂ absorvidos.','Permite reutilizar a amina continuamente, reduzindo custos.'],
+'Lavagem cáustica':['Dessulfurizar GLP e gasolina removendo H₂S, mercaptans e ácidos.','Esses compostos corroem, cheiram mal e não atendem à especificação.'],
+'MEROX / TCR':['Converter mercaptans tóxicos e corrosivos em dissulfetos inodoros (adoçamento).','Regenerar a soda reduz o custo operacional em relação à lavagem cáustica simples.'],
+'Fornalha de pirólise a vapor':['Produzir olefinas leves (eteno e propeno) por craqueamento térmico.','Eteno e propeno são os petroquímicos básicos que originam os principais polímeros.'],
+'Coluna de fracionamento':['Separar e purificar olefinas e aromáticos.','Cada produto básico precisa de alta pureza para a síntese da 2ª geração.'],
+'2ª geração':['Transformar os básicos em intermediários e resinas.','É a etapa que liga as matérias-primas aos polímeros.'],
+'3ª geração':['Transformar resinas em bens de consumo.','É a etapa que entrega os produtos finais ao mercado.']};
+const DET3={
+'Dessalgadora':['Dessalgadora (Tratamento Pré-Destilação)','Remover o sal (cloretos) e a água residual contidos no petróleo bruto.','A água e o sal no petróleo provocam corrosão severa nas tubulações da refinaria, incrustações nas fornalhas de aquecimento e prejudicam o equilíbrio termodinâmico na torre de destilação.','Petróleo cru bruto aquecido moderadamente em trocadores de calor.','Recebe injeção de água doce de lavagem e desemulsificante sob turbulência. Em seguida, passa por um campo elétrico alternado e rápido, que polariza e força o choque entre as gotículas de água salgada (coalescência), promovendo sua decantação no fundo do vaso.',['<b>Petróleo Dessalgado</b> (que segue aquecido para as fornalhas)','<b>Água Salgada</b> (efluente descartado)']],
+'Torre de destilação atmosférica':['Destilação Atmosférica (Pressão de 1 atm)','Fracionar o petróleo cru em famílias de hidrocarbonetos (cortes leves e intermediários) de acordo com suas faixas de temperatura de ebulição.','O petróleo é uma mistura complexa que não pode ser usada de forma bruta; a destilação separa fisicamente essa mistura em frações utilizáveis como combustíveis ou matérias-primas industriais.','Petróleo dessalgado e aquecido a altas temperaturas na fornalha (~350 ºC–400 ºC).','O óleo entra pelo ponto <i>flash</i> no fundo da torre sob pressão de 1 atm. Ao subir pelos pratos teóricos, sofre vaporizações e condensações sucessivas em função da volatilidade das moléculas.',['Gás Combustível (C₁–C₂)','GLP (C₃–C₄) e Nafta Leve (C₅–C₈)','Nafta Pesada (C₁₀–C₁₂)','Querosene (C₁₁–C₁₂)','Gasóleo Atmosférico (C₁₃–C₂₅)','<b>Resíduo Atmosférico (RAT)</b> (frações pesadas do fundo que não vaporizaram)']],
+'Torre de vácuo':['Destilação a Vácuo (Pressão Reduzida)','Separar o Gasóleo de Vácuo (GOV) contido no Resíduo Atmosférico (RAT), reduzindo a pressão da torre para evitar o craqueamento térmico indesejado (degradação por calor excessivo) das moléculas pesadas.','As moléculas do RAT têm massa molar alta e exigiriam temperaturas acima de 400 ºC para volatilizar sob pressão normal, o que causaria quebra térmica e formação de coque no equipamento. Com pressão reduzida (vácuo), o ponto de ebulição cai, permitindo a separação em temperaturas operacionais seguras.','Resíduo Atmosférico (RAT) aquecido na fornalha.','Um sistema de ejetores de vácuo em 3 estágios gera pressão reduzida na torre. Ao contrário da torre atmosférica, não se utiliza refluxo de topo nem de fundo, para evitar reaquecer o material pesado.',['<b>Gasóleo de Vácuo (GOV)</b> (fração destilada que serve como carga nobre para o Craqueamento Catalítico – FCC)','<b>Resíduo de Vácuo (RV)</b> (fração ultrapesada do fundo)']],
+'UDASF':['Desasfaltação a Propano (Extração com Solvente)','Extrair e recuperar frações oleosas de alto valor contidas no Resíduo de Vácuo (RV), separando o óleo útil das frações pesadas ricas em asfaltenos e metais.','O RV ainda contém moléculas de óleo valiosas que não puderam ser vaporizadas nem no vácuo. Como o RV não pode ser destilado, utiliza-se a solubilidade química em solventes leves para lavar e extrair esse óleo.','Resíduo de Vácuo (RV) + solvente leve (mistura de propano e/ou butano).','Processo de extração líquido-líquido em contracorrente. O propano dissolve seletivamente o óleo leve presente no RV, enquanto os asfaltenos pesados permanecem insolúveis e precipitam.',['<b>Óleo Desasfaltado (ODES)</b> (fração oleosa limpa enviada como carga de conversão para o craqueamento)','<b>Resíduo Asfáltico (RASF)</b> (fração concentrada em asfaltenos usada para produção de asfalto ou óleo combustível pesado)']]};
+function tipFmt(t,ob,pq,en,co,sa){return '<b>'+t+'</b><br>'+(ob?'<b>Objetivo Principal:</b> '+ob+'<br>':'')+(pq?'<b>Por que essa etapa existe?</b> '+pq+'<br>':'')+'<b>O que entra (Carga):</b> <span class=gi>'+en+'</span><br><b>Como funciona:</b> '+co+'<br><b>O que sai (Produtos):</b><div class=gi>'+LI(sa)+'</div>'}
+function tipHTML(u){const d=DET3[u.n];if(d)return tipFmt(...d);const e=DET[u.n];if(e){const o=IO[u.n],ob=OBJ[u.n]||[];return tipFmt(e[0],ob[0],ob[1],e[1],e[2],o?o[1].split(' · '):['—'])}const o=IO[u.n];return '<b>'+u.n+'</b><br>'+u.d+(o?'<br><span class=io-i>▶ <b>Entra:</b> '+o[0]+'</span><br><span class=io-o>◀ <b>Sai:</b> '+o[1]+'</span>':'')}
+function tipHTMLOld(u){const d2=DET2[u.n];if(d2)return tipFmt(...d2);const e=DET[u.n];if(e){const o=IO[u.n];return tipFmt(e[0],e[1],e[2].split(/\.\s+/).filter(Boolean).map(s=>s.replace(/\.$/,'')+'.'),o?o[1].split(' · '):['—'])}if(e)return '<b>'+e[0]+'</b><br><b>Produto de entrada (Carga):</b> <span class=gi>'+e[1]+'</span><br><b>O que acontece:</b> <span class=g>'+e[2]+'</span>';const o=IO[u.n];return '<b>'+u.n+'</b><br>'+u.d+(o?'<br><span class=io-i>▶ <b>Entra:</b> '+o[0]+'</span><br><span class=io-o>◀ <b>Sai:</b> '+o[1]+'</span>':'')}
+const X=[`<hr><p><b>▶ Entra:</b> matéria orgânica (algas, micro-organismos) soterrada com sedimentos de baixa permeabilidade.<br><b>◀ Sai:</b> petróleo bruto (óleo + gás natural + água).</p><p><b>Definição:</b> do latim <i>petra</i> (pedra) + <i>oleum</i> (óleo): mistura natural de HCs nos estados gasoso, líquido ou sólido (xisto), com compostos de S, N, O e metais.</p><p><b>Estágios (temperatura):</b> diagênese &lt;65 °C · catagênese 60–150 °C (janela do óleo) · metagênese 150–210 °C · metamorfismo &gt;210 °C.</p><p><b>Composição (% massa):</b> C 83–87 · H 10–14 · S 0,05–6 · N 0,1–2 · O 0,05–1,5 · metais (Fe, Ni, V, Na) &lt;0,3. Séries de HCs: parafinas, naftênicos, olefinas, aromáticos.</p><p><b>Contaminantes e problemas:</b><br>• Sulfurados (~0,65%; mais S em óleo denso): sulfetos, benzotiofenos, H₂S → corrosão, SOx, envenenam catalisadores, estabilizam emulsões.<br>• Nitrogenados (piridinas, quinolinas, porfirinas): estáveis, nas frações pesadas → gomas, veneno de catalisador.<br>• Oxigenados (ácidos naftênicos, fenóis): corrosão ácida, odor, cor, gomas.<br>• Metais: Na reduz o ponto de fusão dos refratários; V ataca tubos de exaustão.<br>• Resinas (solúveis) e asfaltenos (coloidais, escuros, não voláteis).</p>`,
+`<hr><p><b>▶ Entra:</b> fluido bruto do poço (óleo + gás + água/sais + sedimentos).<br><b>◀ Sai:</b> óleo estabilizado (BS&amp;W &lt;1%), gás e água tratada.</p><p><b>1ª etapa – separação gás-óleo-água livre:</b> separadores por diferença de densidade (gravidade); podem exigir antiespumantes.</p><p><b>2ª etapa – desidratação e dessalgação:</b> a água forma emulsão água-óleo estabilizada por emulsificantes naturais do petróleo.<br>• Químico: desemulsificantes (cabeça polar + cauda apolar) rompem a interface; exigem tempo de residência e turbulência para a coalescência.<br>• Físico: campo elétrico alternado na dessalgadora acelera o choque das gotas.</p><p><b>Meta:</b> BS&amp;W &lt;1% e sais &lt;300 mg/L, evitando incrustação e corrosão.</p>`,
+`<hr><p><b>▶ Entra:</b> óleo cru do processamento primário.<br><b>◀ Sai:</b> gás combustível, GLP, nafta, querosene, gasóleo, GOV, ODES e RASF.</p><p><b>Refino:</b> separação (física) · conversão (química) · tratamento · auxiliares (ex.: H₂). Fração = faixa de HCs com ponto de ebulição e nº de carbonos parecidos. Agentes: energia (T e P: destilações) e massa (solvente: UDASF).</p><p><b>Dessalgadora:</b> desemulsificante + turbulência/residência controladas + campo elétrico → coalescência. Protege fornalhas e tubulações de sal e água.</p><p><b>Destilação atmosférica (1 atm):</b> carga entra no ponto <i>flash</i>; pratos com equilíbrio líquido-vapor; refluxo de topo e refervedor de fundo.<br>• Gás combustível C₁–C₂ · GLP C₃–C₄<br>• Nafta leve C₅–C₈ / pesada C₁₀–C₁₂ (gasolina, petroquímica)<br>• Querosene C₁₁–C₁₂ (QAV) · gasóleo atmosférico C₁₃–C₂₅ (diesel)<br>• RAT (fundo)</p><p><b>Destilação a vácuo:</b> carga RAT; vácuo por ejetores em 3 estágios (pré, inter e pós-condensadores); sem refluxo de topo nem de fundo, para não reaquecer o pesado. Sai GOV (carga do FCC) e RV (asfalto, óleo combustível, coque).</p><p><b>UDASF:</b> extração líquido-líquido do RV com propano → ODES + resíduo asfáltico.</p>`,
+`<hr><p><b>▶ Entra:</b> GOV (UFCC) · nafta pesada hidrotratada (reforma) · RAT/RV/OD (coque).<br><b>◀ Sai:</b> GLP, gasolina, LCO, OD · nafta reformada, BTX, H₂ · gás, nafta, gasóleos e coque verde.</p><p><b>Conversão:</b> altera a estrutura química (quebra, rearranjo, ligação) para adaptar a produção à demanda.</p><p><b>UFCC:</b> quebra C–C do GOV (~C₂₅₊) em GLP e gasolina. Catalisador: pó de zeólita + caulim + alumina/sílica, fluidizado por vapor. Via carbocátion C⁺. Primárias endotérmicas (quebra); secundárias exotérmicas (isomerização, transferência de H, coque). O regenerador queima parcialmente o coque (CO) com ar, reativando o catalisador e fornecendo calor ao <i>riser</i>; gases vão à caldeira de CO. Fracionadora: gás combustível, GLP, nafta, LCO e OD.</p><p><b>Reforma:</b> nafta pesada, sem mudar o nº de C. Gera gasolina de alta octanagem, BTX e H₂. Pré-tratamento HDT (Ni-Mo/Co-Mo) remove S, N, O e metais. Catalisador Pt-Re em alumina clorada (função metálica + ácida). Principais (endotérmicas): desidrociclização, desidrogenação, isomerização. Indesejáveis: hidrocraqueamento e coque. Reatores em série com fornalhas de reaquecimento + estabilizadora.</p><p><b>Coqueamento retardado:</b> térmico, sem catalisador (radicais livres: iniciação, propagação, terminação). Carga RAT, RV, OD. A coqueificação é <i>retardada</i> para os tambores (~500 °C), evitando entupir as serpentinas (vapor/água dá turbulência). Dois tambores em batelada (ciclo ~24 h: enche × resfria e descoqueia). Coque esponja/<i>shot</i> (asfaltenos, mais S e metais) e coque agulha (aromáticos, grafítico, alto valor).</p>`,
+`<hr><p><b>▶ Entra:</b> gás natural, gás de refinaria, GLP, nafta e querosene com H₂S, CO₂ e mercaptans.<br><b>◀ Sai:</b> derivados dessulfurizados/adoçados; H₂S e CO₂ (topo da regeneradora); dissulfetos; soda exausta (lavagem).</p><p>Contaminantes vêm do cru ou se formam no craqueamento; a escolha do processo depende da fração e do teor de contaminantes.</p><p><b>Aminas (MEA primária, DEA secundária, MDEA terciária):</b> absorção química reversível. Amina pobre na absorvedora → amina rica → regeneradora (aquecimento libera H₂S/CO₂) → volta ao ciclo.<br>H₂S + R₂NH ⇄ R₂NH₂⁺ + HS⁻ (rápida)<br>CO₂ + 2R₂NH ⇄ R₂NCOO⁻ + R₂NH₂⁺ (moderada)<br>CO₂ + H₂O + R₂NH ⇄ R₂NH₂⁺HCO₃⁻ (lenta)<br>MEA: reativa, estável, barata e seletiva ao H₂S.</p><p><b>Lavagem cáustica (não regenerativa):</b> GLP/gasolina. NaOH neutraliza H₂S, RSH, COS e ácidos carboxílicos:<br>H₂S + 2NaOH → Na₂S + 2H₂O<br>RSH + NaOH → NaSR + H₂O<br>A soda não é recuperada: troca periódica e descarte do efluente. Etapas: mistura em tambores, decantação e lavagem final com água.</p><p><b>MEROX / TCR (<i>mercaptan oxidation</i>):</b> GLP (extração) e nafta/querosene (adoçamento). Catalisador de ftalocianina de cobalto sulfonado.<br>2RSH + 2NaOH → 2NaRS + 2H₂O<br>2NaRS + H₂O + ½O₂ → RSSR + 2NaOH (soda regenerada)<br>Global: 2RSH + ½O₂ → RSSR + H₂O</p>`,
+`<hr><p><b>▶ Entra:</b> nafta, etano/propano/butano, gases de refinaria, propeno do FCC, nafta pesada C₆–C₈.<br><b>◀ Sai:</b> eteno, propeno, butadieno, BTX, metanol/amônia → polímeros e bens de consumo.</p><p><b>Refino × petroquímica:</b> refino = misturas complexas, maior escala, menor capital, matéria-prima petróleo. Petroquímica = espécies puras, menor escala, maior capital, matéria-prima nafta e gás natural.</p><p><b>1ª geração:</b> olefinas (eteno, propeno, buteno, butadieno), BTX, gás de síntese (metanol, amônia).<br><b>2ª geração:</b> cloreto de vinila e MEG (eteno), acrilonitrila (propeno), estireno, fenol, LAB (benzeno), ácido tereftálico (xilenos), formol, ureia.<br><b>3ª geração:</b> PE, PVC, PP, PS, PET; fibras (náilon, poliéster); borrachas SBR/BR, espumas PU, resinas, detergentes; fertilizantes.</p><p><b>Matérias-primas:</b> metano → metanol e amônia; etano → pirólise (eteno 75–80%); propano/butano → olefinas (butano também a butadieno); nafta parafínica de baixo S (eteno ~28–30%); propeno do FCC recuperado a &gt;99,5%.</p><p><b>Pirólise a vapor:</b> térmica, endotérmica, &gt;700 °C e &lt;200 kPa. Reações: craqueamento, desidrogenação, condensação (nafta de pirólise), coque. Facilidade: parafina &gt; isoparafina &gt; naftênico.</p><p><b>Aromáticos:</b> reforma da nafta pesada C₆–C₈ em leito fixo → BTX.<br><b>Rotas verdes:</b> etanol de cana → eteno verde; glicerina do biodiesel → propeno; açúcares → ácidos e álcoois.</p>`];
+STEPS.forEach((s,i)=>s.x=X[i]);
+function mkTag(txt,col,x,k){const cv=document.createElement('canvas');cv.width=1536;cv.height=128;const g=cv.getContext('2d');g.font='bold 56px sans-serif';g.textAlign='center';const tw=Math.min(1500,g.measureText(txt).width+80),x0=(1536-tw)/2;g.fillStyle=col;g.fillRect(x0,8,tw,112);g.fillStyle='#fff';g.fillText(txt,768,86,tw-40);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex(cv),depthTest:false,transparent:true}));sp.scale.set(tw/1536*14,14*128/1536,1);sp.position.set(x,4,7.5);sp.renderOrder=20;sp.userData.s=k;S.add(sp);LB.push(sp)}
+[['Matéria orgânica + calor e pressão','Fluido bruto: óleo + gás + água'],['Fluido bruto do poço','Óleo estabilizado (BS&W<1%) · gás · água'],['Óleo dessalgado','Gás, GLP, nafta, QAV, diesel, GOV, RV, ODES'],['GOV · nafta pesada · RV/RAT','GLP, gasolina · BTX + H₂ · coque verde'],['Gases, GLP e nafta com S','Derivados tratados · H₂S · dissulfetos'],['Nafta · etano · GLP · propeno','Eteno, propeno, BTX → PE, PP, PVC, PET']].forEach((t,k)=>{mkTag('▶ ENTRA: '+t[0],'#2e9e4f',XS[k]-6,k);mkTag('◀ SAI: '+t[1],'#1b7f3a',XS[k]+14,k)});
+// ---- interior ----
+const ANIM=[];
+const IM=(c,o)=>new THREE.MeshStandardMaterial({color:c,transparent:o<1,opacity:o,roughness:.6,metalness:.1,side:THREE.DoubleSide});
+function ic(x,y,z,r,h,c,o,rz){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,20),IM(c,o??1));m.position.set(x,y+(rz?0:h/2),z);if(rz)m.rotation.z=Math.PI/2;S.add(m);return m}
+function ib(x,y,z,w,h,l,c,o){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,l),IM(c,o??1));m.position.set(x,y+h/2,z);S.add(m);return m}
+function trays(x,z,r,h,n,cols){for(let k=1;k<=n;k++){const y=k*h/(n+1);ic(x,y,z,r*.95,.06,0x9aa7b5);ic(x,y+.06,z,r*.9,.14,cols[k-1]||0x80deea,.75);for(let a=0;a<4;a++)ic(x+Math.cos(a*1.57)*r*.5,y+.06,z+Math.sin(a*1.57)*r*.5,.12,.22,0xb0bec5)}}
+function flow(x,z,y0,y1,r,n,c,spd,sz){const g=new THREE.SphereGeometry(sz||.08,6,5),mm=new THREE.MeshBasicMaterial({color:c}),P=[];for(let i=0;i<n;i++){const m=new THREE.Mesh(g,mm);P.push([m,Math.random(),Math.random()*6.28,Math.random()*r]);S.add(m)}ANIM.push(t=>P.forEach(([m,o,a,d])=>{let u=(t*Math.abs(spd)*.1+o)%1;if(spd<0)u=1-u;m.position.set(x+Math.cos(a+t)*d,y0+(y1-y0)*u,z+Math.sin(a+t)*d)}))}
+(function(){const x=XS[0];
+for(let i=0;i<45;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.22+Math.random()*.15,8,6),IM(0x121212,1));m.position.set(x-6.3+Math.random()*12.6,-5.8+Math.random()*1.6,-4.4+Math.random()*8.8);S.add(m)}
+flow(x,0,-6,3,.18,12,0x212121,3,.1)})();
+(function(){const x=XS[1];
+ic(x,2.3,0,1.5,2.5,0x1e88e5,.85);ic(x,4.8,0,1.5,3,0x1b1b1b,.9);ic(x,7.8,0,1.5,3.3,0xeceff1,.18);ib(x+.9,2.3,0,.1,3.4,2.8,0x90a4ae);ic(x,10.2,0,1.4,.12,0xb0bec5);
+flow(x,0,7.8,11,1.2,8,0xcfd8dc,2,.07);flow(x,0,4.8,7.6,1.2,10,0x42a5f5,-1,.07);
+const q=x+5.5;ic(q,0,-1,1.7,1.6,0x1e88e5,.85);ic(q,1.6,-1,1.7,.8,0x8d6e63,.8);ic(q,2.4,-1,1.7,3,0x1b1b1b,.9);for(let k=-1;k<=1;k++)ib(q+k*.7,2.4,-1,.05,2.5,2.8,0xffd54f,.6);flow(q,-1,2.4,1.6,1.3,10,0x42a5f5,-1,.06)})();
+(function(){const x=XS[2];
+ib(x-6,.45,0,5.6,.9,2.2,0x1e88e5,.85);ib(x-6,1.35,0,5.6,.9,2.2,0x1b1b1b,.9);ib(x-6,2,0,5.4,.05,2,0xffd54f);ib(x-6,2.35,0,5.4,.05,2,0xffd54f);flow(x-6,0,2,2.35,.9,12,0xfff59d,6,.05);
+for(let k=0;k<5;k++)ic(x-3.8+k*.4,.3,2.5,.07,1.6,0xff6d00);fl(x-3,.1,2.5,.7);
+trays(x,0,1.4,13,6,[0xeeeeee,0xffee58,0xffa726,0x80deea,0x8d6e63,0x3e2723]);ic(x,0,0,1.3,.9,0x3e2723,.9);ic(x,2.4,0,1.35,.08,0xff5252,.9);flow(x,0,.9,13,1,16,0xffcc80,2,.07);
+for(const y of[3,6,9])ic(x+5,y,0,1.1,1.1,0xb0bec5,.6);ic(x+5,0,0,1.1,.9,0x3e2723,.9);flow(x+5,0,1,10.5,.9,10,0xffcc80,1.6,.07);
+ic(x+9.5,0,0,.1,6,0x9e9e9e);for(let k=1;k<=5;k++)ic(x+9.5,k*1.1,0,.6,.05,0xffd54f);ic(x+9.5,.2,0,.8,2,0x3e2723,.6);flow(x+9.5,0,.3,6.5,.7,8,0xfff59d,1.2,.06)})();
+(function(){const x=XS[3];
+flow(x-5,0,.3,13.7,.35,24,0x757575,3,.09);flow(x-5,0,.3,13.7,.35,10,0xffcc80,3,.07);
+ic(x-2,0,0,1.5,3.8,0xff6d00,.55);flow(x-2,0,.4,3.8,1.3,18,0xffcc80,1.5,.09);ic(x-2,.2,0,1.2,.06,0x9e9e9e);for(let a=0;a<2;a++)ic(x-2+(a?.6:-.6),4.6,0,.3,1.4,0x9e9e9e,.95);
+ic(x-2,3,-4,.5,4,0xb0bec5,.9);const cn=new THREE.Mesh(new THREE.ConeGeometry(.9,2,16),IM(0xb0bec5,.9));cn.rotation.x=Math.PI;cn.position.set(x-2,2,-4);S.add(cn);
+trays(x+3,-3,1,12,5,[0xeeeeee,0xffee58,0xffa726,0x80deea,0x8d6e63]);flow(x+3,-3,.5,11.5,.7,10,0xffcc80,1.6,.07);
+for(let k=0;k<3;k++){const px=x-4+2.2*k;ic(px,.8,6,.7,2.2,0xffd54f,.9);ic(px,.8,6,.7,.05,0x9e9e9e);flow(px,6,.6,3.4+.5*k,.55,8,0xfff59d,1.2,.05)}
+for(let s=0;s<2;s++){const px=x+4+s*3.2;ic(px,.3,5,1.2,5.4,0x111111,.95);const cs=new THREE.Mesh(new THREE.SphereGeometry(1.2,12,8,0,6.3,0,1.57),IM(0x111111,1));cs.position.set(px,5.7,5);cs.scale.y=.5;S.add(cs);flow(px,5,6,8.5,.9,10,0xffcc80,1.2,.06)}})();
+(function(){const x=XS[4];
+trays(x-4,0,1.1,10,5,[0x42a5f5]);trays(x,0,1.1,10,5,[0x42a5f5]);
+flow(x-4,0,.5,9.5,.8,10,0xcfd8dc,1.6,.07);flow(x-4,0,.5,9.5,.8,10,0x42a5f5,-1.2,.07);flow(x,0,.5,9.5,.8,10,0xe53935,1.5,.07);flow(x,0,.5,9.5,.8,8,0x42a5f5,-1,.07);ic(x,.2,0,.9,.6,0xe53935,.9);
+ic(x+4,0,0,1.3,3.4,0x29b6f6,.8);ic(x+4,.3,0,.08,4,0x9e9e9e);for(const y of[1,2.4])ic(x+4,y,0,.8,.06,0xeeeeee);flow(x+4,0,.3,3.4,1.1,12,0xfff59d,1.4,.06);
+ic(x+8,0,0,1.1,3.2,0xffb300,.8);ic(x+8,3.4,0,1.1,.9,0xb0bec5,.55);flow(x+8,0,.2,3.2,.9,14,0xe3f2fd,2,.05)})();
+(function(){const x=XS[5];
+for(let k=0;k<6;k++)ic(x-7.4+k*.55,.4,0,.07,2.7,0xff6d00);for(let k=0;k<3;k++)fl(x-7+k,.1,0,.6);
+trays(x-1,0,1,12,5,[0xeeeeee,0xce93d8,0xba68c8,0xab47bc,0x8e24aa]);flow(x-1,0,.5,11.5,.7,10,0xe1bee7,1.6,.07);
+for(let k=0;k<3;k++){const m=new THREE.Mesh(new THREE.SphereGeometry(1.3,16,10,0,6.3,1.57,1.57),IM(0xba68c8,.85));m.position.set(x+3+k*3.2,1.4,-3);S.add(m)}
+ic(x+3,.2,3.5,.6,1.7,0xce93d8,.9);ic(x+5,.2,3.5,.6,1.7,0xce93d8,.9);flow(x+3,3.5,.3,1.7,.4,6,0xffffff,1,.05);
+ic(x+10,1,3.5,.5,4,0x90a4ae,1,true);for(let k=0;k<2;k++)ic(x+13+k*2.4,1.5,-2,.9,2.6,0xfff176,.9)})();
+const SHELL=new Set(['Rocha-reservatório','Camada de óleo','Água de formação','Capa de gás','Separador trifásico','Tanque de desidratação','Dessalgadora','Fornalha','Torre de destilação atmosférica','Torre de vácuo','UDASF','Riser (UFCC)','Regenerador','Vaso separador','Fracionadora','Reator de reforma','Tambor de coque','Absorvedora de amina','Regeneradora de amina','Lavagem cáustica','MEROX / TCR','Fornalha de pirólise a vapor','Coluna de fracionamento','Esfera de armazenamento','Esfera de GLP','2ª geração','3ª geração','Silo de pellets','Fornalha de reaquecimento']);
+let CUT=true;
+function setCut(){pick.forEach(m=>{if(!SHELL.has(m.userData.n))return;const t=m.material;t.transparent=CUT;t.opacity=CUT?.2:1;t.depthWrite=!CUT;t.needsUpdate=true})}
+const ib2=document.createElement('button');ib2.textContent='Interior';ib2.className='on';ib2.onclick=()=>{CUT=!CUT;ib2.classList.toggle('on',CUT);setCut()};nav.appendChild(ib2);setCut();
+(function a(){requestAnimationFrame(a);const t=performance.now()/1000;ANIM.forEach(f=>f(t))})();
+// ---- fluxo dos produtos ----
+const YV=new THREE.Vector3(0,1,0);
+function st(k,lab,col,...pts){const G=STG[k],V=pts.map(p=>new THREE.Vector3(...p)),Ls=[0];let T=0;
+for(let i=1;i<V.length;i++){const a=V[i-1],b=V[i];T+=a.distanceTo(b);Ls.push(T);const m=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,a.distanceTo(b),8),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.55}));m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(YV,b.clone().sub(a).normalize());G.add(m)}
+const at=d=>{let i=1;while(i<V.length-1&&Ls[i]<d)i++;const a=V[i-1],b=V[i];return[a.clone().lerp(b,(d-Ls[i-1])/(Ls[i]-Ls[i-1]||1)),b.clone().sub(a).normalize()]};
+const n=Math.max(2,Math.round(T/2.5)),cs=[];for(let i=0;i<n;i++){const c=new THREE.Mesh(new THREE.ConeGeometry(.4,1,8),new THREE.MeshBasicMaterial({color:col}));G.add(c);cs.push([c,i/n])}
+ANIM.push(t=>cs.forEach(([c,o])=>{const[p,d]=at((t*2.5+o*T)%T);c.position.copy(p);c.quaternion.setFromUnitVectors(YV,d)}));
+const cv=document.createElement('canvas');cv.width=1024;cv.height=128;const g=cv.getContext('2d');g.font='bold 52px sans-serif';g.textAlign='center';const tw=Math.min(1000,g.measureText(lab).width+60),x0=(1024-tw)/2;g.fillStyle='rgba(10,16,28,.9)';g.fillRect(x0,8,tw,112);g.fillStyle='#'+col.toString(16).padStart(6,'0');g.fillRect(x0,8,12,112);g.fillStyle='#fff';g.fillText(lab,512,82,tw-50);
+const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex(cv),depthTest:false,transparent:true}));sp.scale.set(tw/1024*10,1.25,1);const mp=at(T/2)[0];sp.position.set(mp.x,mp.y+.8,mp.z);sp.renderOrder=21;G.add(sp)}
+st(0,'Fluido bruto (óleo + gás + água)',0xffa000,[0,-5,0],[0,1.9,0],[8,1.9,5],[14,.9,5]);
+st(1,'Fluido bruto',0xffa000,[12,.9,5],[16.5,4.5,1.2]);st(1,'Gás → compressão / flare',0xf5f5f5,[15.5,4.2,0],[15.5,13,0],[28,12,6]);st(1,'Óleo + emulsão',0xffc107,[18,6.2,0],[23.5,6,-1]);st(1,'Salmoura',0x42a5f5,[21,2.5,2],[21,.4,5]);st(1,'Óleo estabilizado (BS&W<1%)',0xffc107,[23.5,.6,-1],[23.5,.6,5],[34,.6,5]);
+st(2,'Óleo cru',0xffc107,[26,.6,5],[27.8,.9,2],[28.5,.9,0]);st(2,'Água salgada',0x42a5f5,[30,.3,1.2],[30,.2,4]);st(2,'Óleo dessalgado',0xffc107,[33,1.2,0],[33.5,1.2,2.5]);st(2,'Óleo aquecido (ponto flash)',0xff7043,[34.1,1.3,2.5],[34.6,1.3,0],[36,2.4,0]);
+[[11,'Gás combustível',0xf5f5f5],[9.5,'GLP',0xffee58],[7.5,'Nafta',0xffa726],[5.5,'Querosene',0x4dd0e1],[3.5,'Gasóleo (diesel)',0xa1887f]].forEach(([y,l,c])=>st(2,l,c,[37.4,y,0],[40.6,y,2.6]));
+st(2,'RAT',0x8d6e63,[37.4,.8,0],[39.8,.8,0]);st(2,'GOV → UFCC',0xffca28,[42.2,7,0],[46,7,3]);st(2,'RV',0x6d4c41,[42.2,.8,0],[44.8,.8,0]);st(2,'ODES',0xffd54f,[46.4,5.5,0],[50,5.5,3]);st(2,'RASF',0x4e342e,[46.4,.6,0],[50,.6,2]);
+st(3,'GOV + catalisador',0xffca28,[48,.8,4],[50.6,.8,.5]);st(3,'Efluente craqueado',0xff7043,[51,13,0],[54,6.5,-4]);st(3,'Vapores craqueados',0xff7043,[54,8,-4],[58,9,-3]);st(3,'Gás + GLP + nafta',0xffee58,[59,10,-3],[62,10.5,-1]);st(3,'LCO',0x4dd0e1,[59,6,-3],[62,6,-1]);st(3,'OD',0x8d6e63,[59,1.2,-3],[62,1.2,-1]);st(3,'Catalisador regenerado',0xbdbdbd,[54,2,0],[51.6,2,0]);
+st(3,'Nafta hidrotratada',0xffa726,[48,.8,8.5],[52,.8,6.5]);st(3,'Reformado + BTX + H₂',0xce93d8,[56.4,3.6,6],[59,.8,8.5]);st(3,'RV / RAT aquecido',0x6d4c41,[56,.7,8.5],[60,4.5,6.3]);st(3,'Gás + nafta + gasóleos',0xffee58,[60,9.4,5],[62.5,10.5,3.5]);st(3,'Coque verde (CVP)',0x424242,[63.2,.3,6.3],[63.2,.3,8.5]);
+st(4,'Gás/GLP com H₂S e CO₂',0xffee58,[68,.6,5],[70.8,1,1.2]);st(4,'Amina pobre (regenerada)',0x42a5f5,[76,9,1.2],[72,9,1.2]);st(4,'Amina rica (H₂S + CO₂)',0xe53935,[72,1,1.2],[76,1,1.2]);st(4,'Gás tratado',0xf5f5f5,[72,10.2,0],[72,12.5,0]);st(4,'H₂S + CO₂',0xe0e0e0,[76,12.4,0],[79,13.5,2]);
+st(4,'GLP / gasolina',0xffee58,[77.1,.8,0],[78.6,.8,0]);st(4,'Soda exausta',0x29b6f6,[80,.4,0],[80,.2,3]);st(4,'Produto com mercaptans',0xffa726,[81.4,.8,0],[82.8,.8,0]);st(4,'Ar (O₂)',0x4fc3f7,[84,.4,-2.5],[84,3,-1.2]);st(4,'Produto adoçado (RSSR)',0xffa726,[84,6.2,0],[86,6.2,3]);
+st(5,'Nafta / etano / GLP + vapor',0xffa726,[88,.6,5],[90,1,2],[90.5,1.2,0]);st(5,'Gás craqueado',0xff7043,[92,2,0],[94,2,0]);st(5,'Eteno / propeno',0xce93d8,[97,9,0],[99.6,2.8,-3]);st(5,'Polímeros (PE, PP, PVC)',0xba68c8,[101.5,1.5,3.5],[103.5,1.5,3.5]);st(5,'Pellets → silos',0xfff176,[108,1.5,3.5],[109,1.5,-2]);
+const fb=document.createElement('button');fb.textContent='Fluxo';fb.className='';fb.onclick=()=>{FLOWON=!FLOWON;fb.classList.toggle('on',FLOWON);showLabels()};nav.appendChild(fb);showLabels();
+const tip=document.getElementById('tip');let hov=null;
+function hover(e){if(pts.size)return;const b=el.getBoundingClientRect();mv.set((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1);rc.setFromCamera(mv,cam);const h=rc.intersectObjects(pick,true)[0],t=h&&h.object.userData.n?h.object:null;
+if(hov&&(!t||t.material!==hov.material)){hov.material.emissive.setHex(0);hov=null}
+if(t){if(!hov){hov=t;t.material.emissive.setHex(0x553300)}tip.innerHTML=tipHTML(t.userData);tip.style.display='block';const w=tip.offsetWidth,hh=tip.offsetHeight;tip.style.left=Math.min(e.clientX+14,innerWidth-w-8)+'px';tip.style.top=Math.min(e.clientY+14,innerHeight-hh-8)+'px';el.style.cursor='pointer'}else{tip.style.display='none';el.style.cursor='grab'}}
+el.addEventListener('webglcontextlost',e=>{e.preventDefault();document.getElementById('info').textContent='O navegador perdeu o contexto 3D. Recarregue a página (F5).'});
+el.addEventListener('pointermove',hover);el.addEventListener('pointerleave',()=>{tip.style.display='none'});
+const pm2=document.getElementById('pmin'),pn=document.getElementById('panel');pm2.onclick=()=>{const m=pn.classList.toggle('min');pm2.textContent=m?'▴':'▾';pm2.title=m?'Expandir resumo':'Minimizar resumo'};document.getElementById('pt').onclick=()=>pm2.click();
+go(0);
+const clock=new THREE.Clock();
+function loop(){requestAnimationFrame(loop);const dt=clock.getDelta();
+for(const k in g)v[k]+=(g[k]-v[k])*Math.min(1,dt*3);
+cam.position.set(v.tx+v.r*Math.sin(v.ph)*Math.sin(v.th),v.ty+v.r*Math.cos(v.ph),v.r*Math.sin(v.ph)*Math.cos(v.th));cam.lookAt(v.tx,v.ty,0);
+pm.forEach((m,k)=>{P[k]=(P[k]+dt*5)%END;m.position.set(P[k],.6,5);let s=0;XS.forEach((q,j)=>{if(P[k]>=q-6)s=j});m.material.color.setHex(STEPS[s].c)});
+R.render(S,cam)}
+loop();
+</script>
+</body>
+</html>
