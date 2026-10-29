@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07121a">
 <title>Petróleo e Refino 3D</title>
 <meta name="description" content="Simulação 3D didática do refino de petróleo, baseada na apostila Petróleo e Refino (Tecnologia Orgânica I, EQO 364).">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect x=%2218%22 y=%2210%22 width=%2214%22 height=%2246%22 rx=%224%22 fill=%22%23c7cfd6%22/%3E%3Crect x=%2236%22 y=%2224%22 width=%2212%22 height=%2232%22 rx=%224%22 fill=%22%239fb6c6%22/%3E%3Crect x=%2218%22 y=%2218%22 width=%2214%22 height=%225%22 fill=%22%23ffd94a%22/%3E%3Crect x=%2218%22 y=%2230%22 width=%2214%22 height=%225%22 fill=%22%23ffa23a%22/%3E%3Crect x=%2218%22 y=%2242%22 width=%2214%22 height=%225%22 fill=%22%23b0643a%22/%3E%3Crect x=%228%22 y=%2256%22 width=%2248%22 height=%224%22 rx=%222%22 fill=%22%235a6b78%22/%3E%3C/svg%3E">
@@ -346,6 +347,99 @@ body.dock-top .dk-hint{display:none}
   .speed output{font-size:12px}
   #tourbar .btn{font-size:13px;padding:7px 10px}
 }
+/* ---------- celular (classe body.mob, posta pelo mobApply): barra fina no topo, gaveta inferior com abas
+   Texto/Controles e navegação ◀ ▶ na base; em paisagem a gaveta vira uma coluna à direita ---------- */
+#mbar,#mmenu,#sheet,#mnav{display:none}
+body.mob{--mb-h:52px;--mn-h:62px;-webkit-tap-highlight-color:transparent}
+body.mob.land{--mb-h:46px;--mn-h:52px}
+body.mob #topbar,body.mob #bottom,body.mob #legend,body.mob #panel-toggle{display:none!important}
+body.mob #app{grid-template-columns:minmax(0,1fr) 0px!important;transition:none}
+body.mob button{touch-action:manipulation}
+.mb-ic{flex:none;width:44px;height:44px;border-radius:10px;border:1px solid var(--ui-line);background:var(--ui-bg);color:#e6eef4;font-size:19px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.mb-ic:disabled{opacity:.3}
+body.mob.land .mb-ic{height:38px}
+body.mob #mbar{display:flex;position:fixed;left:0;right:0;top:0;height:calc(var(--mb-h) + env(safe-area-inset-top));padding:env(safe-area-inset-top) max(6px,env(safe-area-inset-right)) 0 max(6px,env(safe-area-inset-left));align-items:center;gap:6px;z-index:20;
+  background:linear-gradient(to bottom,rgba(5,12,18,.94),rgba(5,12,18,.78));border-bottom:1px solid var(--ui-line);user-select:none;-webkit-user-select:none}
+#mb-menu[aria-expanded=true]{background:var(--azul-2);border-color:var(--azul-2)}
+#mb-title{flex:1;min-width:0;padding:0 4px;line-height:1.18}
+#mb-title small{display:block;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#9fb6c6;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mb-title b{display:block;font-size:15.5px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.mob.menu-open #mmenu{display:block;position:fixed;left:max(6px,env(safe-area-inset-left));top:calc(var(--mb-h) + env(safe-area-inset-top) + 6px);width:min(340px,calc(100vw - 12px));
+  max-height:calc(100dvh - var(--mb-h) - var(--mn-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);overflow-y:auto;overscroll-behavior:contain;z-index:40;
+  background:#0c1b26;border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:12px 14px 14px;box-shadow:0 12px 40px rgba(0,0,0,.6);font-size:14px}
+.mm-lab{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9fb6c6;font-weight:600;margin:14px 0 6px}
+.mm-lab:first-child{margin-top:0}
+.mm-lab output{color:#ffd84a;letter-spacing:0}
+#mmenu .seg button{flex:1 1 0;min-height:42px;font-size:14px;padding:6px 8px;line-height:1.15}
+#mmenu input[type=range]{width:100%}
+.mm-btn{display:block;width:100%;min-height:44px;margin-top:14px;font-size:14.5px}
+.mm-leg{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:13px;color:#dfe9f0}
+.mm-leg li{display:flex;align-items:center;gap:7px;line-height:1.35}
+.mm-leg li i{flex:0 0 11px;width:11px;height:11px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c)}
+.mm-leg li i.cube{border-radius:2px}
+.mm-hint{margin-top:14px;padding:9px 11px;border-radius:8px;background:rgba(255,216,74,.08);border:1px solid rgba(255,216,74,.3);font-size:13px;line-height:1.45;color:#e9eef2}
+body.mob #sheet{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:calc(var(--mn-h) + env(safe-area-inset-bottom));height:48px;z-index:15;
+  background:var(--paper);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.45);overflow:hidden;transition:height .28s ease}
+body.mob #sheet.drag{transition:none}
+body.mob.land #sheet{left:auto;right:env(safe-area-inset-right);width:min(46vw,430px);border-radius:14px 0 0 0}
+#sheet-h{flex:none;height:48px;display:flex;align-items:center;gap:6px;padding:9px 8px 3px;position:relative;touch-action:none;cursor:grab;background:#0c1b26;user-select:none;-webkit-user-select:none}
+#sheet-h .grip{position:absolute;left:50%;top:4px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:#5d7486}
+.sh-tabs{flex:1;display:flex;gap:5px;min-width:0}
+.sh-tabs button{flex:1 1 0;min-width:0;height:36px;border-radius:9px;border:1px solid var(--ui-line);background:rgba(255,255,255,.06);color:#cfe0ea;font:600 14px var(--sans);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;position:relative;padding:0 8px}
+.sh-tabs button.on{background:var(--azul-2);border-color:#5f9bc8;color:#fff}
+.sh-tabs button.new::after{content:'';position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:#ffd84a;box-shadow:0 0 0 0 rgba(255,216,74,.7);animation:mbping 1.6s ease-out infinite}
+@keyframes mbping{to{box-shadow:0 0 0 8px rgba(255,216,74,0)}}
+#sheet-h .mb-ic{width:38px;height:36px;font-size:15px;background:rgba(255,255,255,.06)}
+#sheet-b{flex:1;min-height:0;position:relative}
+#sheet-b>#panel,#sheet-b>#dock{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#sheet[data-tab=texto] #dock,#sheet[data-tab=ctl] #panel{display:none!important}
+body.mob #sheet #panel{display:block;height:auto;transform:none;border:0;border-radius:0;box-shadow:none;transition:none}
+body.mob #sheet .ph{padding:12px 16px 11px}
+body.mob #sheet .ph-close{display:none}
+body.mob #sheet .ph h2{font-size:21px;margin-bottom:7px}
+body.mob #sheet .seal-ex{font-size:12.5px}
+body.mob #sheet .pb{overflow:visible;padding:10px 16px 36px;font-size:16px;line-height:1.55}
+body.mob #sheet .box .bt{padding-right:0;margin-top:12px}
+body.mob #sheet .ficha dl{grid-template-columns:1fr;gap:1px}
+body.mob #sheet .ficha dd{margin-bottom:6px}
+body.mob #sheet #dock{width:auto;max-height:none;border:0;border-radius:0;background:#0e1d28;padding:10px 14px 30px;font-size:14px;line-height:1.45}
+body.mob .dk-top .btn[data-dk=back],body.mob .dk-min,body.mob .dk-title{display:none}
+body.mob .dk-views{margin-bottom:8px}
+body.mob .dk-views button,body.mob .dk-ctl .seg button{min-height:42px;font-size:14px}
+body.mob .dk-lab{font-size:11.5px}
+body.mob .dk-tog{min-height:48px;font-size:14px}
+body.mob .dk-row .btn{min-height:44px;font-size:14px}
+body.mob .dk-key,body.mob .dk-meter{font-size:13px}
+body.mob .dk-info{font-size:14px}
+body.mob .dk-info h4{font-size:14.5px}
+body.mob .dk-tab{font-size:12.5px}
+body.mob .dk-hint{font-size:12.5px;color:#a9bfcd}
+body.mob input[type=range]{-webkit-appearance:none;appearance:none;height:36px;background:transparent;margin:0}
+body.mob input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#40525f}
+body.mob input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-10px;border-radius:50%;background:#ffd84a;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.55)}
+body.mob input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#40525f}
+body.mob input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#ffd84a;border:3px solid #fff}
+body.mob #mnav{display:flex;align-items:center;position:fixed;left:0;right:0;bottom:0;height:calc(var(--mn-h) + env(safe-area-inset-bottom));
+  padding:0 max(8px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px,env(safe-area-inset-left));gap:8px;z-index:21;background:#07121a;border-top:1px solid var(--ui-line);user-select:none;-webkit-user-select:none}
+#mnav .mb-ic{width:54px;height:46px}
+body.mob.land #mnav .mb-ic{height:40px}
+#mn-step{flex:1;min-width:0;height:46px;border-radius:10px;border:1px solid var(--ui-line);background:var(--ui-bg);color:#e6eef4;text-align:left;padding:2px 10px;line-height:1.2;cursor:pointer;font-family:var(--sans)}
+body.mob.land #mn-step{height:40px}
+#mn-step small{display:block;font-size:11px;color:#9fb6c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mn-step b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mn-next{flex:none;min-width:64px;height:46px;border-radius:10px;border:0;background:var(--azul-2);color:#fff;font:600 16px var(--sans);padding:0 14px;cursor:pointer}
+body.mob.land #mn-next{height:40px}
+body.mob #modal .card{width:94vw;max-height:84vh;max-height:84dvh;padding:14px 16px 18px}
+body.mob .lbl-sc{font-size:12px;padding:2px 7px}
+body.mob .lbl-sc small{font-size:10.5px}
+.msteps{display:flex;flex-direction:column;gap:4px;font-family:var(--sans)}
+.ms-g{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5a7085;font-weight:700;margin:10px 0 2px;padding-bottom:3px;border-bottom:2px solid var(--pc)}
+.msteps button{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;text-align:left;border:1px solid #d5dfe8;background:#fff;border-radius:9px;padding:6px 10px;font:500 15px var(--sans);color:var(--ink);cursor:pointer}
+.msteps button i{flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:700;background:#e4ebf1;color:#4a5866}
+.msteps button.seen i{background:#cfe0ee;color:var(--azul)}
+.msteps button.on{border-color:var(--azul-2);background:#e8f1f8}
+.msteps button.on i{background:#ffd84a;color:#10202b}
 /* ---------- telas grandes (projetor) ---------- */
 @media (min-width: 1700px) and (min-height: 900px){
   .lbl-unit{font-size:15px}
@@ -441,6 +535,29 @@ window.addEventListener('error', function (e) { if (e && e.message) window.__boo
     <div class="pb" id="pb"></div>
   </aside>
 </div>
+
+<!-- interface de celular (visível só com body.mob) -->
+<header id="mbar">
+  <button class="mb-ic" id="mb-menu" aria-label="Menu" aria-expanded="false" aria-controls="mmenu">☰</button>
+  <button class="mb-ic" id="mb-home" aria-label="Voltar à maquete">⌂</button>
+  <div id="mb-title"></div>
+  <button class="mb-ic" id="mb-pause" aria-label="Pausar ou retomar as animações">⏸</button>
+</header>
+<div id="mmenu" role="menu" aria-label="Menu"></div>
+<section id="sheet" data-tab="texto" aria-label="Texto e controles">
+  <div id="sheet-h">
+    <span class="grip"></span>
+    <div class="sh-tabs" role="tablist"><button data-tab="texto" role="tab">Texto</button><button data-tab="ctl" role="tab">Controles</button></div>
+    <button class="mb-ic" id="sh-dn" aria-label="Baixar a gaveta">▾</button>
+    <button class="mb-ic" id="sh-up" aria-label="Subir a gaveta">▴</button>
+  </div>
+  <div id="sheet-b"></div>
+</section>
+<nav id="mnav" aria-label="Passos do tour">
+  <button class="mb-ic" id="mn-prev" aria-label="Passo anterior">◀</button>
+  <button id="mn-step" aria-label="Ver todos os passos"></button>
+  <button id="mn-next" aria-label="Próximo passo">▶</button>
+</nav>
 
 <div id="modal" role="dialog" aria-modal="true" aria-label="Glossário de siglas">
   <div class="card"><button class="ph-close" id="modal-x" title="Fechar">×</button><div id="modal-body"></div></div>
@@ -1340,7 +1457,7 @@ const renderer = (() => {   // sem WebGL: a tela de abertura explica o problema
   try { return new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' }); }
   catch (e) { window.__bootFail('gl'); throw e; }
 })();
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, matchMedia('(pointer: coarse)').matches ? 1.5 : 2));   // celular: mais fluido
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.localClippingEnabled = true; // usado no corte do reservatório (cena de migração)
@@ -2023,10 +2140,12 @@ function measureLabels() {
 const chipOn = (L) => state.family || state.focus.has(L.unit) || state.hover === L.unit;
 
 /* Áreas do palco cobertas pela interface: os rótulos 3D não podem ficar embaixo delas. */
-const ui = { top: 0, bottom: 0, left: 0, rects: [] };
+const ui = { top: 0, bottom: 0, left: 0, right: 0, rects: [] };
 function measureUI() {
   const sr = stage.getBoundingClientRect();
   if (!sr.height) return;
+  if (mob.on) return measureMob(sr);
+  ui.right = 0;
   const tb = $('#topbar').getBoundingClientRect();
   const bt = (state.mode === 'tour' ? $('#tourbar') : $('#timeline')).getBoundingClientRect();
   ui.top = clamp(tb.bottom - sr.top, 0, sr.height / 3);
@@ -2133,12 +2252,15 @@ function updateTween(dt) {
 }
 /* Enquadra uma esfera (centro, raio) na área útil do palco: entre a barra superior e a linha do tempo.
    O deslocamento de vista (setViewOffset, em resize) já põe o centro óptico no meio dessa área. */
-function fitCam(center, radius, dir, k = 1) {
+function fitK() {   // distância por unidade de raio que cabe na área útil
   const W = stage.clientWidth || 1, H = stage.clientHeight || 1, off = viewShift();
   const t = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
   const vf = 2 * Math.atan(t * Math.max(.3 * H, H - ui.top - ui.bottom) / (H + off));
-  const hf = 2 * Math.atan(t * Math.max(.3 * W, W - ui.left) / (H + off));
-  return { pos: center.clone().addScaledVector(dir.clone().normalize(), radius / Math.sin(Math.min(vf, hf) / 2) * k), target: center.clone() };
+  const hf = 2 * Math.atan(t * Math.max(.3 * W, W - ui.left - ui.right) / (H + off));
+  return 1 / Math.sin(Math.min(vf, hf) / 2);
+}
+function fitCam(center, radius, dir, k = 1) {
+  return { pos: center.clone().addScaledVector(dir.clone().normalize(), radius * fitK() * k), target: center.clone() };
 }
 function camForUnit(id) {
   const u = UNITS[id], cv = u.cam || {};
@@ -2214,7 +2336,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]); downAt = null;
   if (moved >= 6) return;
   ptr = e; doHover();
-  if (cur) { if (state.spick && cur.onPick) cur.onPick(cur, state.spick); }
+  if (cur) { if (state.spick && cur.onPick) { cur.onPick(cur, state.spick); if (mob.on) mobShowInfo(); } }
   else if (state.hover) openUnit(state.hover);
 });
 function updateHighlights(dt) {
@@ -2331,10 +2453,10 @@ function showContent(cid) {
   for (const bl of c.blocos || []) b += blockHTML(bl);
   if (c.resumo) b += `<div class="box resumo"><div class="bt">${c.resumoTitulo || 'Resumo do capítulo'}</div><span class="bk">Resumo</span><ul>${c.resumo.map((i) => `<li>${fmt(i)}</li>`).join('')}</ul></div>`;
   if (c.ver?.length) b += `<div class="see"><span>Veja também:</span>${c.ver.map((v) => `<button data-go="${v}">${fmt(CONTEUDO[v].titulo)}</button>`).join('')}</div>`;
-  pb.innerHTML = b;
-  pb.scrollTop = 0;
+  pb.innerHTML = mob.on ? toque(b) : b;
+  pb.scrollTop = 0; pb.parentElement.scrollTop = 0;
   $('#ph-x').onclick = () => setPanel(false);
-  if (window.innerWidth <= 860 && cid !== 'inicio') setPanel(true);
+  if (!mob.on && window.innerWidth <= 860 && cid !== 'inicio') setPanel(true);
 }
 ph.addEventListener('click', (e) => { const b = e.target.closest('[data-scene]'); if (b) enterScene(b.dataset.scene); });
 pb.addEventListener('click', (e) => {
@@ -2344,6 +2466,7 @@ pb.addEventListener('click', (e) => {
   else if (a?.dataset.act === 'explorar') { setMode('explorar'); if (window.innerWidth <= 860) setPanel(false); }
 });
 function setPanel(open) {
+  if (mob.on) return mobSheet(open ? (mob.st === 'closed' ? 'half' : mob.st) : 'closed', open ? 'texto' : null);
   const was = !document.body.classList.contains('panel-closed');
   document.body.classList.toggle('panel-closed', !open);
   if (was !== open) { resize(); if (cur) { const s = cur; setTimeout(() => { if (cur === s) flyTo(s.cam(s), .6); }, 340); } }   // a área livre mudou: reenquadra a cena
@@ -2375,10 +2498,11 @@ function syncUI() {
   $('#stepinfo').innerHTML = state.step < 0 ? 'Início · <b>visão geral da maquete</b>' : `Passo ${state.step + 1} de ${TOUR.length} · <b>${fmt(CONTEUDO[s.c].titulo)}</b>`;
   $('#prev').disabled = state.step < 0;
   $('#next').textContent = state.step < 0 ? 'Começar ▶' : state.step >= TOUR.length - 1 ? 'Voltar ao início ⌂' : 'Próximo ▶';
+  mobSync();
 }
 
 /* ---------- controles gerais ---------- */
-function togglePause() { sim.paused = !sim.paused; $('#b-pause').textContent = sim.paused ? '▶ Retomar' : '⏸ Pausar'; }
+function togglePause() { sim.paused = !sim.paused; $('#b-pause').textContent = sim.paused ? '▶ Retomar' : '⏸ Pausar'; $('#mb-pause').textContent = sim.paused ? '▶' : '⏸'; }
 $('#m-tour').onclick = () => { setMode('tour'); goStep(state.step < 0 ? 0 : state.step); };
 $('#m-exp').onclick = () => setMode('explorar');
 $('#b-home').onclick = goHome;
@@ -2447,7 +2571,8 @@ function enterScene(id, view) {
   Object.assign(controls, { minDistance: 3, maxDistance: 90, maxPolarAngle: Math.PI * .6 }, s.limits || {});
   applyView(s);
   s.enter?.(s);
-  if (window.innerWidth <= 860) setPanel(false);
+  if (!mob.on && window.innerWidth <= 860) setPanel(false);
+  if (mob.on && mob.tab !== 'ctl') mob.newCtl = true;
   renderDock();
   resize();
   jumpTo(s.cam(s));
@@ -2475,8 +2600,9 @@ function renderDock() {
     se ? `<span class="dk-seal" style="background:${se.cor}" title="${se.explic}">${se.nome.toUpperCase()} · ${se.frase}</span>` : ''}<button class="dk-min" data-dk="min" title="Recolher ou expandir os controles">${min ? '+' : '–'}</button></div>
     <div class="dk-title"><small>${c.cap} · cena 3D</small><b>${fmt(s.title || c.titulo)}</b></div>${
     s.views ? `<div class="seg dk-views" role="group" aria-label="Abas da cena">${s.views.map((v, i) => `<button data-view="${v.k}" class="${v.k === s.view ? 'on' : ''}" title="Tecla ${i + 1}">${v.n}</button>`).join('')}</div>` : ''}
-    <div class="dk-body">${s.dock(s)}</div><div class="dk-info" id="dk-info"></div><div class="dk-hint">${s.hint || 'Arraste para girar · roda do mouse para aproximar'}</div>`;
+    <div class="dk-body">${s.dock(s)}</div><div class="dk-info" id="dk-info"></div><div class="dk-hint">${(mob.on ? toqueHint : String)(s.hint || 'Arraste para girar · roda do mouse para aproximar')}</div>`;
   infoHTML = null; infoTick(0, true);
+  mobSync();
 }
 function renderDockBody() { const b = dockEl.querySelector('.dk-body'); if (b && cur) b.innerHTML = cur.dock(cur); infoTick(0, true); }
 /* O cartão de informação é refeito 4× por segundo, e só toca no DOM quando o texto muda. */
@@ -2485,7 +2611,7 @@ function infoTick(dtr, force) {
   const el = $('#dk-info'); if (!el || !cur) return;
   const h = cur.info ? cur.info(cur) : '';
   if (h === infoHTML) return;
-  infoHTML = h; el.innerHTML = h;
+  infoHTML = h; el.innerHTML = mob.on ? toque(h) : h;
   const t0 = ui.top; measureUI(); if (ui.top !== t0) resize();
 }
 dockEl.addEventListener('click', (e) => {
@@ -6982,7 +7108,198 @@ function updDsRota(s, dt) {
 }
 
 /* =====================================================================
-   28. INICIALIZAÇÃO E LAÇO DE ANIMAÇÃO
+   28. INTERFACE DE CELULAR
+       Em telas estreitas (ou celular deitado) a barra superior, a legenda, o painel e o dock dão lugar a:
+       barra fina no topo (menu, maquete, título, pausa), gaveta inferior com as abas Texto (o painel) e
+       Controles (o dock da cena), que se arrasta pelo cabeçalho, e navegação ◀ passo ▶ na base.
+       Em paisagem a gaveta vira uma coluna à direita. O painel e o dock são os mesmos elementos, só mudam de lugar.
+   ===================================================================== */
+const mob = { on: false, land: false, st: 'half', tab: 'texto', h: -1, newCtl: false, rt: 0 };
+const mobMQ = matchMedia('(max-width: 860px), (pointer: coarse) and (max-height: 520px)');
+const sheetEl = $('#sheet'), sheetH = $('#sheet-h');
+/* No celular os textos falam em tocar, não em clicar ou usar o mouse. */
+const toque = (h) => h.replace(/Clique/g, 'Toque').replace(/clique/g, 'toque')
+  .replace(/arraste para girar, use a roda do mouse para aproximar/g, 'arraste com um dedo para girar, use dois dedos para aproximar')
+  .replace(/Na cena ao lado/g, () => (mob.land ? 'Na cena ao lado' : 'Na cena acima'));
+const toqueHint = (h) => toque(h.replace(/Passe o mouse sobre (uma|as) /g, (m, a) => (a === 'uma' ? 'Toque numa ' : 'Toque nas ')).replace(/ e clique para/g, ' para')
+  .replace(/\bclique (nas|em|para)/g, 'toque $1').replace(/^Clique /, 'Toque ').replace(/ no painel/g, ' nos controles')
+  .replace(/Arraste para girar · roda do mouse para aproximar/, 'Um dedo gira · dois dedos aproximam e movem').replace(/arraste para girar/g, 'um dedo gira, dois aproximam'));
+/* Alturas da gaveta: fechada (só o cabeçalho), metade e cheia; em paisagem, aberta ocupa a coluna toda. */
+function mobHeights() {
+  const hh = sheetH.offsetHeight || 48, avail = Math.max(hh, window.innerHeight - $('#mbar').offsetHeight - $('#mnav').offsetHeight - 6);
+  return mob.land ? { closed: hh, half: avail, full: avail } : { closed: hh, half: Math.round(clamp(avail * .48, hh, avail)), full: avail };
+}
+/* Muda o estado e/ou a aba da gaveta; com a área livre diferente, a câmera se afasta ou se aproxima
+   na mesma direção (não perde o giro que o aluno deu). */
+function mobSheet(st, tab, refit = true) {
+  if (!mob.on) return;
+  if (st) mob.st = st;
+  if (tab) mob.tab = tab;
+  if (mob.tab === 'ctl' && !cur) mob.tab = 'texto';
+  if (mob.tab === 'ctl') mob.newCtl = false;
+  sheetEl.dataset.tab = mob.tab;
+  for (const b of sheetH.querySelectorAll('[data-tab]')) {
+    b.classList.toggle('on', b.dataset.tab === mob.tab); b.setAttribute('aria-selected', b.dataset.tab === mob.tab);
+    if (b.dataset.tab === 'ctl') { b.hidden = !cur; b.classList.toggle('new', mob.newCtl && !!cur); }
+  }
+  const H = mobHeights(), h = H[mob.st];
+  $('#sh-up').disabled = h >= H.full; $('#sh-dn').disabled = mob.st === 'closed';
+  if (h === mob.h) return;
+  const f0 = fitK();
+  mob.h = h; sheetEl.style.height = h + 'px';
+  resize();
+  if (!refit) return;
+  const f1 = fitK(); if (Math.abs(f1 / f0 - 1) < .01) return;
+  const tg = (tween ? tween.q1 : controls.target).clone(), ps = tween ? tween.p1 : camera.position;
+  flyTo({ pos: tg.clone().add(ps.clone().sub(tg).multiplyScalar(f1 / f0)), target: tg }, .5);
+}
+function measureMob(sr) {
+  const W = sr.width, H = sr.height, top = $('#mbar').offsetHeight, nav = $('#mnav').offsetHeight, sw = sheetEl.offsetWidth;
+  document.body.classList.remove('dock-top');
+  ui.left = 0; ui.top = top;
+  ui.right = mob.land && mob.st !== 'closed' ? sw : 0;
+  // gaveta cheia é modo leitura: a cena fica enquadrada como na metade, sem se afastar à toa
+  ui.bottom = clamp(nav + (mob.land ? 0 : clamp(mob.h, 0, mobHeights().half)), 0, H * .8);
+  ui.rects = [0, W, 0, top + 2, mob.land ? W - sw : 0, W, H - nav - Math.max(mob.h, 0) - 4, H];
+  if (document.body.classList.contains('menu-open')) { const r = $('#mmenu').getBoundingClientRect(); ui.rects.push(r.left - sr.left, r.right - sr.left, r.top - sr.top, r.bottom - sr.top); }
+}
+/* Toque numa peça da cena: a explicação aparece na aba Controles (abre a gaveta se estiver fechada). */
+function mobShowInfo() {
+  mobSheet(mob.st === 'closed' ? 'half' : null, 'ctl');
+  requestAnimationFrame(() => { const el = $('#dk-info'); if (el && el.offsetParent) dockEl.scrollTo({ top: Math.max(0, el.offsetTop - 8), behavior: 'smooth' }); });
+}
+function mobSync() {
+  if (!mob.on) return;
+  let k, t;
+  if (cur) { const c = CONTEUDO[cur.content]; k = (c.cap ? c.cap + ' · ' : '') + 'cena 3D'; t = fmt(cur.title || c.titulo); }
+  else if (state.content !== 'inicio') { k = 'Maquete da refinaria'; t = fmt(CONTEUDO[state.content].titulo); }
+  else { k = 'Tecnologia Orgânica I · EQO 364'; t = 'Petróleo e Refino 3D'; }
+  $('#mb-title').innerHTML = `<small>${k}</small><b>${t}</b>`;
+  $('#mb-home').disabled = !cur && state.content === 'inicio';
+  const s = TOUR[state.step], last = state.step >= TOUR.length - 1;
+  $('#mn-step').innerHTML = state.step < 0 ? '<small>Início · ver os passos ▾</small><b>Visão geral</b>'
+    : `<small>Passo ${state.step + 1} de ${TOUR.length} · ver todos ▾</small><b>${fmt(CONTEUDO[s.c].titulo)}</b>`;
+  $('#mn-prev').disabled = state.step < 0;
+  $('#mn-next').textContent = state.step < 0 ? 'Começar ▶' : last ? '⌂' : '▶';
+  $('#mn-next').setAttribute('aria-label', state.step < 0 ? 'Começar o tour' : last ? 'Voltar ao início' : 'Próximo passo');
+  for (const b of document.querySelectorAll('#mmenu [data-mode]')) b.classList.toggle('on', b.dataset.mode === state.mode);
+  for (const b of document.querySelectorAll('#mmenu [data-lbl]')) b.classList.toggle('on', b.dataset.lbl === state.labels);
+  mobSheet(null, null);
+}
+function mobMenu(open) {
+  document.body.classList.toggle('menu-open', open);
+  $('#mb-menu').setAttribute('aria-expanded', open); $('#mb-menu').textContent = open ? '✕' : '☰';
+  if (open) { mobSync(); $('#mm-spd').value = sim.speed; $('#mm-spd-o').textContent = $('#speed-o').textContent; }
+  measureUI();
+}
+/* Lista de passos (toque no nome do passo, na base). */
+function mobSteps() {
+  let h = `<h2>Caminho do óleo</h2><div class="msteps"><button data-step="-1" class="${state.step < 0 ? 'on' : ''}"><i>⌂</i><span>Visão geral da maquete</span></button>`;
+  for (const g of GRUPOS) {
+    h += `<div class="ms-g" style="--pc:${g.c}">${g.n}</div>`;
+    TOUR.forEach((s, i) => { if (s.g === g.k) h += `<button data-step="${i}" class="${i === state.step ? 'on' : ''}${state.visited.has(i) ? ' seen' : ''}"><i>${i + 1}</i><span>${fmt(CONTEUDO[s.c].titulo)}</span></button>`; });
+  }
+  $('#modal-body').innerHTML = h + '</div>';
+  $('#modal').classList.add('open');
+  $('#modal-body').querySelector('.on')?.scrollIntoView({ block: 'center' });
+}
+function mobBuild() {
+  $('#mmenu').innerHTML = `<div class="mm-lab">Modo</div><div class="seg"><button data-mode="tour">Tour guiado</button><button data-mode="explorar">Exploração livre</button></div>
+    <div class="mm-lab">Rótulos na cena 3D</div><div class="seg"><button data-lbl="all">Todos</button><button data-lbl="units">Principais</button><button data-lbl="none">Nenhum</button></div>
+    <div class="mm-lab"><span>Velocidade das animações</span><output id="mm-spd-o">1×</output></div><input id="mm-spd" type="range" min="0.25" max="2" step="0.25" value="1" aria-label="Velocidade das animações">
+    <button class="btn mm-btn" data-mm="glos">Glossário de siglas</button>
+    <div class="mm-lab">Cores das frações</div><ul class="mm-leg">${$('#lg-list').innerHTML}</ul>
+    <div class="mm-hint"><b>Como mexer:</b> um dedo gira a cena; dois dedos aproximam e movem. Toque numa unidade ou peça para ler sobre ela. Arraste a gaveta pelo cabeçalho para ver mais texto ou mais cena.</div>`;
+  $('#mmenu').addEventListener('click', (e) => {
+    const m = e.target.closest('[data-mode]');
+    if (m) { if (m.dataset.mode === 'tour') { setMode('tour'); goStep(state.step < 0 ? 0 : state.step); } else setMode('explorar'); return mobMenu(false); }
+    const l = e.target.closest('[data-lbl]');
+    if (l) { state.labels = l.dataset.lbl; $('#b-labels').textContent = LBL_MODES.find((x) => x[0] === state.labels)[1]; return mobSync(); }
+    if (e.target.closest('[data-mm=glos]')) { mobMenu(false); $('#b-glos').click(); }
+  });
+  $('#mm-spd').addEventListener('input', (e) => { $('#speed').value = e.target.value; $('#speed').dispatchEvent(new Event('input')); $('#mm-spd-o').textContent = $('#speed-o').textContent; });
+  $('#mb-menu').onclick = () => mobMenu(!document.body.classList.contains('menu-open'));
+  document.addEventListener('pointerdown', (e) => { if (document.body.classList.contains('menu-open') && !e.target.closest?.('#mmenu,#mb-menu')) mobMenu(false); }, true);
+  $('#mb-home').onclick = () => (cur ? backToHub() : goHome());
+  $('#mb-pause').onclick = togglePause;
+  $('#mn-prev').onclick = () => { if (state.mode !== 'tour') setMode('tour'); prev(); };
+  $('#mn-next').onclick = () => { if (state.mode !== 'tour') setMode('tour'); next(); };
+  $('#mn-step').onclick = mobSteps;
+  $('#modal-body').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-step]'); if (!b) return;
+    $('#modal').classList.remove('open');
+    const i = +b.dataset.step; if (i < 0) goHome(); else goStep(i);
+  });
+  // gaveta: toque no cabeçalho abre/fecha; arrastar (inclusive sobre as abas) muda a altura e encaixa no estado mais próximo
+  let drag = null, dragged = false;
+  sheetH.addEventListener('pointerdown', (e) => { drag = { id: e.pointerId, y: e.clientY, h: sheetEl.offsetHeight, on: false }; dragged = false; });
+  sheetH.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dy = drag.y - e.clientY;
+    if (!drag.on) { if (Math.abs(dy) < 8) return; drag.on = dragged = true; sheetEl.classList.add('drag'); try { sheetH.setPointerCapture(e.pointerId); } catch (_) { /* sem captura: segue sem ela */ } }
+    const H = mobHeights(); sheetEl.style.height = clamp(drag.h + dy, H.closed, H.full) + 'px';
+  });
+  const endDrag = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null; if (!d.on) return;
+    sheetEl.classList.remove('drag');
+    const H = mobHeights(), h = sheetEl.offsetHeight;
+    const st = ['closed', 'half', 'full'].reduce((a, k) => (Math.abs(H[k] - h) < Math.abs(H[a] - h) ? k : a), 'closed');
+    if (H[st] === mob.h) sheetEl.style.height = mob.h + 'px';   // voltou ao mesmo estado: só encaixa
+    mobSheet(st);
+  };
+  sheetH.addEventListener('pointerup', endDrag); sheetH.addEventListener('pointercancel', endDrag);
+  sheetH.addEventListener('click', (e) => {
+    if (dragged) { dragged = false; return; }
+    const t = e.target.closest('.sh-tabs button');
+    if (t) return mobSheet(mob.st === 'closed' ? 'half' : null, t.dataset.tab);
+    if (e.target.closest('#sh-up')) return mobSheet(mob.st === 'closed' ? 'half' : 'full');
+    if (e.target.closest('#sh-dn')) return mobSheet(mob.st === 'full' && !mob.land ? 'half' : 'closed');
+    mobSheet(mob.st === 'closed' ? 'half' : 'closed');
+  });
+  mobMQ.addEventListener('change', mobApply);
+  window.addEventListener('resize', () => { if (mob.on) mobApply(); });
+}
+/* Liga ou desliga o modo celular (e acompanha a rotação da tela). */
+function mobApply() {
+  const on = mobMQ.matches, land = on && window.innerWidth > window.innerHeight;
+  const turned = on !== mob.on || (on && land !== mob.land);
+  if (on !== mob.on) {
+    mob.on = on;
+    document.body.classList.toggle('mob', on);
+    if (on) {
+      $('#sheet-b').append($('#panel'), dockEl);
+      dockEl.classList.remove('min'); dockEl.style.top = dockEl.style.maxHeight = '';
+    } else {
+      mobMenu(false);
+      $('#app').append($('#panel')); stage.insertBefore(dockEl, $('#topbar'));
+      if (window.innerWidth > 860) setPanel(true);
+    }
+    showContent(state.content);
+    if (cur) renderDock();
+  }
+  mob.land = land; document.body.classList.toggle('land', land);
+  if (on) { mob.h = -1; mobSheet(null, null, false); mobSync(); }
+  else resize();
+  // trocou de layout ou girou a tela: reenquadra quando o palco já tem o tamanho novo (na rotação o navegador
+  // pode passar por tamanhos intermediários, então repete uma vez pouco depois)
+  if (turned) { requestAnimationFrame(() => mobRefit()); clearTimeout(mob.rt); mob.rt = setTimeout(mobRefit, 450); }
+}
+function mobRefit(n = 0) {
+  if ((stage.clientWidth < 100 || stage.clientHeight < 100) && n < 30) return requestAnimationFrame(() => mobRefit(n + 1));
+  resize(); jumpTo(cur ? cur.cam(cur) : hubCamNow());
+}
+/* Câmera da maquete para o conteúdo atual (passo do tour ou unidade aberta na exploração). */
+function hubCamNow() {
+  const s = TOUR[state.step];
+  if (state.content === 'inicio' || !s) return CAMS.overview();
+  if (s.c === state.content) return camOf(s.cam || s.unit);
+  const u = Object.values(UNITS).find((x) => x.content === state.content);
+  return u ? camForUnit(u.id) : CAMS.overview();
+}
+
+/* =====================================================================
+   29. INICIALIZAÇÃO E LAÇO DE ANIMAÇÃO
    ===================================================================== */
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
@@ -6992,9 +7309,9 @@ function resize() {
   measureLabels();
   measureUI();
   // o centro óptico fica no meio da área livre: entre a barra superior e a inferior e, nas cenas, à direita do dock
-  const off = viewShift(), offX = ui.left;
+  const off = viewShift(), offX = Math.abs(ui.left - ui.right);
   camera.aspect = (w + offX) / (h + off);
-  camera.setViewOffset(w + offX, h + off, 0, ui.bottom > ui.top ? off : 0, w, h);
+  camera.setViewOffset(w + offX, h + off, ui.right > ui.left ? offX : 0, ui.bottom > ui.top ? off : 0, w, h);
 }
 new ResizeObserver(resize).observe(stage);
 resize();
@@ -7005,9 +7322,10 @@ buildFCC(); buildReforma(); buildCoque(); buildTratamentos(); buildProdutos();
 buildFlows(); buildParticles();
 buildTimeline();
 applyFocus();
+mobBuild(); mobApply();
 showContent('inicio');
 syncUI();
-if (window.innerWidth <= 860) { setPanel(false); $('#legend').classList.add('min'); $('#lg-x').textContent = '+'; }
+if (!mob.on && window.innerWidth <= 860) { setPanel(false); $('#legend').classList.add('min'); $('#lg-x').textContent = '+'; }
 resize();
 { const c = CAMS.overview(); camera.position.copy(c.pos); controls.target.copy(c.target); }
 measureLabels();
@@ -7029,7 +7347,7 @@ clearTimeout(window.__bootT);
 requestAnimationFrame(() => { const b = $('#boot'); if (b && !b.classList.contains('fail')) { b.classList.add('ok'); setTimeout(() => b.remove(), 600); } });
 
 /* Ganchos para depuração no console (advance(s) avança a simulação s segundos de uma vez). */
-window.__refino = { scene, camera, controls, UNITS, FLOWS, LABELS, state, goStep, openUnit, goHome, setMode, SC, enterScene, exitScene, backToHub,
+window.__refino = { scene, camera, controls, mob, UNITS, FLOWS, LABELS, state, goStep, openUnit, goHome, setMode, SC, enterScene, exitScene, backToHub,
   setView: (k) => cur && setView(cur, k), get cur() { return cur; },
   advance: (s = 3) => { for (let i = 0; i < Math.round(s * 60); i++) frame(1 / 60); } };
 </script>
